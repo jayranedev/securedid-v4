@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONIOENCODING=utf-8 ./venv/Scripts/python -c \"from app.main import app; print\\('import OK'\\)\")",
+      "Bash(./venv/Scripts/python -c ' *)",
+      "Bash(taskkill //F //PID 24728)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_navigate",
+      "Bash(netstat -ano)",
+      "Bash(powershell -command \"Get-Process -Id 21276 | Select-Object Name, CPU\")",
+      "Bash(taskkill //F //PID 21276)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/college-portal)"
+    ]
+  }
+}

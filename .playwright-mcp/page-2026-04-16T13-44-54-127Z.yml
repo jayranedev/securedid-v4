@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🏛️ Admin Panel SecureDID v4" [ref=e4] [cursor=pointer]:
+        - /url: /admin
+        - generic [ref=e5]: 🏛️ Admin Panel
+        - generic [ref=e6]: SecureDID v4
+      - link "Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /admin
+      - link "Governance" [ref=e8] [cursor=pointer]:
+        - /url: /admin/governance
+      - link "Attack Demo" [ref=e9] [cursor=pointer]:
+        - /url: /attack-demo
+      - link "Analytics" [ref=e10] [cursor=pointer]:
+        - /url: /analytics
+  - main [ref=e11]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - text: 🏛️
+        - heading "Panelist Login" [level=1] [ref=e51]
+        - paragraph [ref=e52]: SecureDID Admin — Base Sepolia
+      - generic [ref=e53]:
+        - button "🦊 MetaMask Wallet" [ref=e54] [cursor=pointer]
+        - button "🔑 Password" [ref=e55] [cursor=pointer]
+      - generic [ref=e56]:
+        - paragraph [ref=e57]: Connect your Base Sepolia wallet to authenticate. Your wallet address must be linked to your panelist account.
+        - generic [ref=e58]: "Chain: Base Sepolia (84532)"
+        - button "🦊 Connect MetaMask" [ref=e59] [cursor=pointer]:
+          - generic [ref=e60]: 🦊
+          - text: Connect MetaMask
+  - alert [ref=e36]

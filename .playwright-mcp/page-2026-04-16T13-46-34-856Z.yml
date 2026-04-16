@@ -1,0 +1,43 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🎓 College Portal Don Bosco College of Engineering" [ref=e4] [cursor=pointer]:
+        - /url: /college-portal
+        - generic [ref=e5]: 🎓 College Portal
+        - generic [ref=e6]: Don Bosco College of Engineering
+      - generic [ref=e7]: Student Verification
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: 🏫
+          - heading "Don Bosco College of Engineering" [level=1] [ref=e14]
+        - paragraph [ref=e15]: Student Portal — Attendance, Events & Notices
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: 🔐
+          - heading "Login with DID Wallet" [level=2] [ref=e19]
+          - paragraph [ref=e20]: Use your SecureDID wallet to authenticate. Your identity is verified cryptographically — no password needed.
+          - generic [ref=e21]:
+            - button "🔐 Login with SecureDID" [disabled] [ref=e22]:
+              - generic [ref=e23]: 🔐
+              - text: Login with SecureDID
+            - paragraph [ref=e24]:
+              - text: Open your
+              - link "wallet" [ref=e25] [cursor=pointer]:
+                - /url: /wallet
+              - text: to import your identity first.
+          - paragraph [ref=e26]: 5-check VP verification · Zero-knowledge auth · ECDSA P-256
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]:
+              - paragraph [ref=e30]: Mid-Semester Exam Schedule Released
+              - generic [ref=e31]: Examination
+            - paragraph [ref=e32]: 2025-04-10
+          - generic [ref=e33]:
+            - generic [ref=e34]:
+              - paragraph [ref=e35]: Annual Sports Day — 28th April
+              - generic [ref=e36]: Event
+            - paragraph [ref=e37]: 2025-04-08
+          - paragraph [ref=e38]: Login to view all notices and attendance
+  - alert [ref=e39]

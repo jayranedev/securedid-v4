@@ -1,0 +1,21 @@
+email,roll_number,full_name,dob,department,year,secret_key
+arjun.mehta@student.dbce.edu,21CS001,Arjun Mehta,2002-05-14,CS,4,sk_arjun_cs_001
+neha.joshi@student.dbce.edu,21CS002,Neha Joshi,2002-08-22,CS,4,sk_neha_cs_002
+rohan.kulkarni@student.dbce.edu,22CS001,Rohan Kulkarni,2003-01-10,CS,3,sk_rohan_cs_003
+sanya.bhat@student.dbce.edu,22CS002,Sanya Bhat,2003-03-18,CS,3,sk_sanya_cs_004
+kiran.shetty@student.dbce.edu,21IT001,Kiran Shetty,2002-07-05,IT,4,sk_kiran_it_001
+aisha.khan@student.dbce.edu,21IT002,Aisha Khan,2002-11-29,IT,4,sk_aisha_it_002
+dev.pillai@student.dbce.edu,22IT001,Dev Pillai,2003-06-15,IT,3,sk_dev_it_003
+meera.nair@student.dbce.edu,22IT002,Meera Nair,2003-09-04,IT,3,sk_meera_it_004
+amit.verma@student.dbce.edu,21EC001,Amit Verma,2002-04-20,EC,4,sk_amit_ec_001
+priti.gawde@student.dbce.edu,21EC002,Priti Gawde,2002-12-01,EC,4,sk_priti_ec_002
+rajan.tiwari@student.dbce.edu,22EC001,Rajan Tiwari,2003-02-14,EC,3,sk_rajan_ec_003
+sara.dsouza@student.dbce.edu,22EC002,Sara D'Souza,2003-07-30,EC,3,sk_sara_ec_004
+nikhil.parab@student.dbce.edu,21ME001,Nikhil Parab,2002-09-17,ME,4,sk_nikhil_me_001
+divya.rao@student.dbce.edu,21ME002,Divya Rao,2002-06-25,ME,4,sk_divya_me_002
+anand.garg@student.dbce.edu,22ME001,Anand Garg,2003-04-08,ME,3,sk_anand_me_003
+jyoti.hegde@student.dbce.edu,22ME002,Jyoti Hegde,2003-10-22,ME,3,sk_jyoti_me_004
+farhan.shaikh@student.dbce.edu,21CIVIL001,Farhan Shaikh,2002-03-30,CIVIL,4,sk_farhan_civil_001
+lakshmi.iyer@student.dbce.edu,21CIVIL002,Lakshmi Iyer,2002-10-11,CIVIL,4,sk_lakshmi_civil_002
+omar.shaikh@student.dbce.edu,22CIVIL001,Omar Shaikh,2003-05-05,CIVIL,3,sk_omar_civil_003
+tanvi.sawant@student.dbce.edu,22CIVIL002,Tanvi Sawant,2003-08-19,CIVIL,3,sk_tanvi_civil_004

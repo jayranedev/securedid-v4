@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🆔 SecureDIDv4" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - link "Register" [ref=e5] [cursor=pointer]:
+        - /url: /register
+      - link "Wallet 🔐" [ref=e6] [cursor=pointer]:
+        - /url: /wallet
+      - link "Admin" [ref=e7] [cursor=pointer]:
+        - /url: /admin
+      - link "College Portal" [ref=e8] [cursor=pointer]:
+        - /url: /college-portal
+      - link "University Portal" [ref=e9] [cursor=pointer]:
+        - /url: /university-portal
+      - link "Attack Demo ⚠️" [ref=e10] [cursor=pointer]:
+        - /url: /attack-demo
+      - link "Analytics 📊" [ref=e11] [cursor=pointer]:
+        - /url: /analytics
+      - generic [ref=e13]: No wallet loaded
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - heading "Governance" [level=1] [ref=e18]
+          - paragraph [ref=e19]: 3-of-5 threshold proposals — add/remove panelists, policy changes
+        - generic [ref=e20]:
+          - button "↻ Refresh" [ref=e21] [cursor=pointer]
+          - button "+ New Proposal" [ref=e22] [cursor=pointer]
+      - paragraph [ref=e23]: Loading…
+  - alert [ref=e24]

@@ -1,0 +1,43 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🏛️ Admin Panel SecureDID v4" [ref=e4] [cursor=pointer]:
+        - /url: /admin
+        - generic [ref=e5]: 🏛️ Admin Panel
+        - generic [ref=e6]: SecureDID v4
+      - link "Dashboard" [ref=e7] [cursor=pointer]:
+        - /url: /admin
+      - link "Governance" [ref=e8] [cursor=pointer]:
+        - /url: /admin/governance
+      - link "Attack Demo" [ref=e9] [cursor=pointer]:
+        - /url: /attack-demo
+      - link "Analytics" [ref=e10] [cursor=pointer]:
+        - /url: /analytics
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - heading "Admin Dashboard" [level=1] [ref=e15]
+          - paragraph [ref=e16]: Welcome, Dr. Vikram Patel (vikram.patel@dbce.edu)
+        - button "Logout" [ref=e17] [cursor=pointer]
+      - generic [ref=e18]:
+        - text: ⚠️ Key share not cached. Visit the
+        - strong [ref=e19]: My Share
+        - text: tab once to enable one-click approvals.
+      - generic [ref=e20]:
+        - paragraph [ref=e21]: 🦊 Link your Base Sepolia wallet for one-click future logins
+        - paragraph [ref=e22]: Connect MetaMask once to associate your wallet address with this account.
+        - button "Connect & Link Wallet" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - button "Pending Approvals" [ref=e26] [cursor=pointer]
+          - button "Batch Approve" [ref=e27] [cursor=pointer]
+          - button "Data Updates" [ref=e28] [cursor=pointer]
+          - button "Revocation" [ref=e29] [cursor=pointer]
+          - button "My Share" [ref=e30] [cursor=pointer]
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - heading "Pending Registrations" [level=2] [ref=e33]
+            - button "↻ Refresh" [ref=e34] [cursor=pointer]
+          - paragraph [ref=e35]: Loading…
+  - alert [ref=e36]

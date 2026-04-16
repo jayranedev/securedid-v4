@@ -1,0 +1,39 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🆔 SecureDIDv4" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - link "Register" [ref=e5] [cursor=pointer]:
+        - /url: /register
+      - link "Wallet 🔐" [ref=e6] [cursor=pointer]:
+        - /url: /wallet
+      - link "Admin" [ref=e7] [cursor=pointer]:
+        - /url: /admin
+      - link "College Portal" [ref=e8] [cursor=pointer]:
+        - /url: /college-portal
+      - link "University Portal" [ref=e9] [cursor=pointer]:
+        - /url: /university-portal
+      - link "Attack Demo ⚠️" [ref=e10] [cursor=pointer]:
+        - /url: /attack-demo
+      - link "Analytics 📊" [ref=e11] [cursor=pointer]:
+        - /url: /analytics
+      - generic [ref=e13]: No wallet loaded
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e17]:
+        - heading "My Wallet" [level=1] [ref=e18]
+        - paragraph [ref=e19]: Identity stored in IndexedDB · v4 encrypted storage
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - text: 🔐
+          - heading "Import Your Identity" [level=2] [ref=e22]
+          - paragraph [ref=e23]: Paste the approval response from the admin panel, or enter your DID and private key manually.
+        - generic [ref=e24]:
+          - button "Paste JSON" [ref=e25] [cursor=pointer]
+          - button "Manual Entry" [ref=e26] [cursor=pointer]
+        - generic [ref=e27]:
+          - 'textbox "{ \"student_did\": \"did:securedid:...\", \"student_private_key_b64\": \"...\", \"vc_json\": {...} }" [ref=e28]':
+            - /placeholder: "{\n  \"student_did\": \"did:securedid:...\",\n  \"student_private_key_b64\": \"...\",\n  \"vc_json\": {...}\n}"
+          - button "Import Identity" [ref=e29] [cursor=pointer]
+        - paragraph [ref=e30]: 🔒 Private key stored in IndexedDB — never leaves your browser.
+  - alert [ref=e31]

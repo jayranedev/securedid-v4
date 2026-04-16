@@ -1,0 +1,40 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🆔 SecureDIDv4" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - link "Register" [ref=e5] [cursor=pointer]:
+        - /url: /register
+      - link "Wallet 🔐" [ref=e6] [cursor=pointer]:
+        - /url: /wallet
+      - link "Admin" [ref=e7] [cursor=pointer]:
+        - /url: /admin
+      - link "College Portal" [ref=e8] [cursor=pointer]:
+        - /url: /college-portal
+      - link "University Portal" [ref=e9] [cursor=pointer]:
+        - /url: /university-portal
+      - link "Attack Demo ⚠️" [ref=e10] [cursor=pointer]:
+        - /url: /attack-demo
+      - link "Analytics 📊" [ref=e11] [cursor=pointer]:
+        - /url: /analytics
+      - generic [ref=e13]: No wallet loaded
+  - main [ref=e14]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - heading "Admin Dashboard" [level=1] [ref=e26]
+          - paragraph [ref=e27]: Welcome, Dr. Vikram Patel (vikram.patel@dbce.edu)
+        - button "Logout" [ref=e28] [cursor=pointer]
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - button "Pending Approvals" [ref=e31] [cursor=pointer]
+          - button "Batch Approve" [active] [ref=e32] [cursor=pointer]
+          - button "Data Updates" [ref=e33] [cursor=pointer]
+          - button "Revocation" [ref=e34] [cursor=pointer]
+          - button "My Share" [ref=e35] [cursor=pointer]
+        - generic [ref=e68]:
+          - heading "Batch Approve All Pending" [level=2] [ref=e69]
+          - paragraph [ref=e70]: Submit your key share to vote YES on all currently pending registrations in one call.
+          - textbox "Paste your Shamir key share (hex)…" [ref=e71]
+          - button "Batch Approve" [disabled] [ref=e72]
+  - alert [ref=e22]

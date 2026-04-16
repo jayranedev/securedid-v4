@@ -1,0 +1,38 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "🏫 University Portal Credential Verification System" [ref=e4] [cursor=pointer]:
+        - /url: /university-portal
+        - generic [ref=e5]: 🏫 University Portal
+        - generic [ref=e6]: Credential Verification System
+      - generic [ref=e7]: Academic Records
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e13]: 🎓
+          - heading "Goa University" [level=1] [ref=e14]
+        - paragraph [ref=e15]: Academic Portal — Marks, CGPA & Transcripts
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: 🔐
+          - heading "University Login" [level=2] [ref=e19]
+          - paragraph [ref=e20]: Authenticate with your SecureDID wallet issued by your college. Your transcript is only accessible to you.
+          - generic [ref=e21]:
+            - button "🔐 Login with SecureDID" [disabled] [ref=e22]:
+              - generic [ref=e23]: 🔐
+              - text: Login with SecureDID
+            - paragraph [ref=e24]:
+              - text: Open your
+              - link "wallet" [ref=e25] [cursor=pointer]:
+                - /url: /wallet
+              - text: to import your identity first.
+          - paragraph [ref=e26]: Cross-institution DID authentication · W3C Verifiable Credentials
+        - generic [ref=e27]:
+          - paragraph [ref=e28]: Why DID login?
+          - list [ref=e29]:
+            - listitem [ref=e30]: Your credentials are cryptographically signed by your college
+            - listitem [ref=e31]: The university verifies them independently — no shared database
+            - listitem [ref=e32]: Private key never leaves your device
+            - listitem [ref=e33]: One-click login across all affiliated institutions
+  - alert [ref=e34]
