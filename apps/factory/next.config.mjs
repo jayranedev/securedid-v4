@@ -16,10 +16,10 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https:",
-              "font-src 'self' data:",
-              "connect-src 'self' https://sepolia.base.org https://base-sepolia.g.alchemy.com https://*.base.org wss://*.base.org https://*.basescan.org",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https://sepolia.base.org https://base-sepolia.g.alchemy.com https://*.base.org wss://*.base.org https://*.basescan.org https://api.web3modal.org",
               "frame-ancestors 'none'",
             ].join("; "),
           },
