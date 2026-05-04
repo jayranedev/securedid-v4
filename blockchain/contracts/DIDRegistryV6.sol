@@ -4,37 +4,29 @@ pragma solidity ^0.8.20;
 /**
  * DIDRegistryV6 — Safe-style multisig DID registry
  *
- * Key changes from V5:
- *   • No owner. All governance via 3-of-5 panelist proposals.
- *   • Panelist changes via proposal (add/remove/replace a slot).
- *   • Enrollment commitments stored on-chain; raw data never leaves panelist browser.
- *   • Revocation is a 3-of-5 proposal (not a single-panelist action).
- *   • Students publish x25519 encryption pubkey on-chain for VC encryption.
- *   • Analytics: revokedAt[student] timestamp.
- *
- * Invariants:
- *   - panelists[] always has exactly 5 slots; empty slot = address(0).
- *   - A student is only recognised once their commitment is authorised.
- *   - 3-of-5 threshold is a constant; can only be changed by redeploy.
+ * Key changes from original V6:
+ *   • Panelist count and vote threshold are set at deploy time (not hardcoded).
+ *   • Panelists array is dynamic (max 10); add/remove via governance proposals.
+ *   • Threshold can be changed via ChangeThreshold proposal.
+ *   • All governance via threshold-of-N panelist proposals.
  */
 contract DIDRegistryV6 {
 
     // ── Constants ──────────────────────────────────────────────────────────────
 
-    uint8   public constant THRESHOLD       = 3;
-    uint8   public constant PANELIST_COUNT  = 5;
+    uint8   public constant MAX_PANELISTS   = 10;
     uint256 public constant PROPOSAL_EXPIRY = 7 days;
-
-    /// Domain separator baked into every enrollment commitment.
-    /// Students and panelists must use the same salt when computing commitment hashes.
     bytes32 public constant ENROLLMENT_SALT = keccak256("SecureDID-V6-Enrollment");
 
     // ── Proposal system ────────────────────────────────────────────────────────
 
     enum ProposalType {
-        ReplacePanelist,   // data: abi.encode(uint8 slot, address newAddr)
-        Enrollment,        // data: abi.encode(bytes32 commitment)
-        Revocation         // data: abi.encode(address student, string reason)
+        ReplacePanelist,   // 0: abi.encode(uint8 slot, address newAddr)
+        Enrollment,        // 1: abi.encode(bytes32 commitment)
+        Revocation,        // 2: abi.encode(address student, string reason)
+        ChangeThreshold,   // 3: abi.encode(uint8 newThreshold)
+        AddPanelist,       // 4: abi.encode(address newPanelist)
+        RemovePanelist     // 5: abi.encode(address panelistAddr)
     }
 
     struct Proposal {
@@ -52,27 +44,28 @@ contract DIDRegistryV6 {
 
     // ── Panelists ──────────────────────────────────────────────────────────────
 
-    address[PANELIST_COUNT] public panelists;
-    mapping(address => bool) private _isPanelist;   // O(1) membership check
+    address[] public panelistList;
+    mapping(address => bool) private _isPanelist;
+    uint8 public threshold;
 
-    // ── Enrollment registry (authorised commitments) ──────────────────────────
+    // ── Enrollment registry ────────────────────────────────────────────────────
 
     mapping(bytes32 => bool) public authorizedEnrollments;
 
     // ── Student state ──────────────────────────────────────────────────────────
 
-    mapping(address => string)  public addressToCID;         // IPFS CID of encrypted VC
-    mapping(address => bytes)   public encryptionPubkeys;    // student's x25519 pubkey
-    mapping(address => uint8)   public approvalCount;        // pending registration approvals
+    mapping(address => string)  public addressToCID;
+    mapping(address => bytes)   public encryptionPubkeys;
+    mapping(address => uint8)   public approvalCount;
     mapping(address => mapping(address => bool)) public hasApproved;
     mapping(address => bool)    public pendingRegistration;
     mapping(address => uint256) public revocationIndex;
 
     // ── Revocation state ───────────────────────────────────────────────────────
 
-    mapping(uint256 => uint256) public revokedSlots;     // packed bitfield
-    mapping(address => uint256) public revokedAt;        // timestamp of revocation
-    uint256 private _nextRevocationIndex = 1;            // index 0 reserved
+    mapping(uint256 => uint256) public revokedSlots;
+    mapping(address => uint256) public revokedAt;
+    uint256 private _nextRevocationIndex = 1;
 
     // ── Access grants ──────────────────────────────────────────────────────────
 
@@ -80,29 +73,18 @@ contract DIDRegistryV6 {
 
     // ── Events ─────────────────────────────────────────────────────────────────
 
-    event StudentRegistered(
-        address indexed student,
-        bytes32 indexed commitment,
-        string metadataHash,
-        uint256 timestamp
-    );
+    event StudentRegistered(address indexed student, bytes32 indexed commitment, string metadataHash, uint256 timestamp);
     event EncryptionKeyPublished(address indexed student, bytes pubkey);
     event DIDIssued(address indexed student, string cid, uint256 revocationIndex, uint256 timestamp);
     event RegistrationApproved(address indexed student, address indexed panelist, uint8 approvalCount);
-
-    event CredentialRevoked(
-        address indexed student,
-        uint256 revocationIndex,
-        string reason,
-        uint256 timestamp
-    );
-
+    event CredentialRevoked(address indexed student, uint256 revocationIndex, string reason, uint256 timestamp);
     event AccessGranted(address indexed student, address indexed platform, uint256 expiresAt);
     event AccessRevoked(address indexed student, address indexed platform, uint256 timestamp);
-
     event PanelistReplaced(uint8 indexed slot, address indexed oldAddr, address indexed newAddr);
-
-    event ProposalCreated(uint256 indexed id, ProposalType pType, address indexed proposer);
+    event PanelistAdded(address indexed newPanelist);
+    event PanelistRemoved(address indexed removedPanelist);
+    event ThresholdChanged(uint8 oldThreshold, uint8 newThreshold);
+    event ProposalCreated(uint256 indexed id, uint8 pType, address indexed proposer);
     event ProposalApproved(uint256 indexed id, address indexed panelist, uint8 approvals);
     event ProposalExecuted(uint256 indexed id);
     event EnrollmentAuthorized(bytes32 indexed commitment);
@@ -124,6 +106,9 @@ contract DIDRegistryV6 {
     error AlreadyVoted();
     error NotAuthorized();
     error InvalidInitialPanelists();
+    error MaxPanelistsReached();
+    error ThresholdViolation();
+    error InvalidThreshold();
 
     // ── Modifiers ──────────────────────────────────────────────────────────────
 
@@ -134,25 +119,26 @@ contract DIDRegistryV6 {
 
     // ── Constructor ────────────────────────────────────────────────────────────
 
-    /**
-     * @param _initialPanelists 5 distinct, non-zero panelist addresses.
-     *                          No owner. All changes require 3-of-5 vote.
-     */
-    constructor(address[PANELIST_COUNT] memory _initialPanelists) {
-        for (uint8 i = 0; i < PANELIST_COUNT; i++) {
+    constructor(address[] memory _initialPanelists, uint8 _threshold) {
+        uint256 n = _initialPanelists.length;
+        if (n == 0 || n > MAX_PANELISTS) revert InvalidInitialPanelists();
+        if (_threshold == 0 || _threshold > n) revert InvalidThreshold();
+        for (uint256 i = 0; i < n; i++) {
             address a = _initialPanelists[i];
             if (a == address(0)) revert InvalidInitialPanelists();
             if (_isPanelist[a]) revert DuplicatePanelist();
-            panelists[i] = a;
+            panelistList.push(a);
             _isPanelist[a] = true;
         }
+        threshold = _threshold;
     }
 
     // ── Proposals: create ──────────────────────────────────────────────────────
 
     function proposeReplacePanelist(uint8 slot, address newAddr) external onlyPanelist returns (uint256) {
-        if (slot >= PANELIST_COUNT) revert InvalidSlot();
-        // newAddr == 0 means "remove" which is fine; duplicate-check happens at execute time
+        if (slot >= panelistList.length) revert InvalidSlot();
+        if (newAddr == address(0)) revert InvalidInitialPanelists();
+        if (_isPanelist[newAddr] && panelistList[slot] != newAddr) revert DuplicatePanelist();
         return _createProposal(ProposalType.ReplacePanelist, abi.encode(slot, newAddr));
     }
 
@@ -166,6 +152,24 @@ contract DIDRegistryV6 {
         return _createProposal(ProposalType.Revocation, abi.encode(student, reason));
     }
 
+    function proposeChangeThreshold(uint8 newThreshold) external onlyPanelist returns (uint256) {
+        if (newThreshold == 0 || newThreshold > panelistList.length) revert InvalidThreshold();
+        return _createProposal(ProposalType.ChangeThreshold, abi.encode(newThreshold));
+    }
+
+    function proposeAddPanelist(address newPanelist) external onlyPanelist returns (uint256) {
+        if (panelistList.length >= MAX_PANELISTS) revert MaxPanelistsReached();
+        if (newPanelist == address(0)) revert InvalidInitialPanelists();
+        if (_isPanelist[newPanelist]) revert DuplicatePanelist();
+        return _createProposal(ProposalType.AddPanelist, abi.encode(newPanelist));
+    }
+
+    function proposeRemovePanelist(address panelistAddr) external onlyPanelist returns (uint256) {
+        if (!_isPanelist[panelistAddr]) revert NotPanelist();
+        if (panelistList.length <= threshold) revert ThresholdViolation();
+        return _createProposal(ProposalType.RemovePanelist, abi.encode(panelistAddr));
+    }
+
     function _createProposal(ProposalType pType, bytes memory data) internal returns (uint256) {
         uint256 id = nextProposalId++;
         proposals[id] = Proposal({
@@ -176,8 +180,7 @@ contract DIDRegistryV6 {
             proposer:  msg.sender,
             data:      data
         });
-        emit ProposalCreated(id, pType, msg.sender);
-        // Proposer auto-votes
+        emit ProposalCreated(id, uint8(pType), msg.sender);
         _vote(id);
         return id;
     }
@@ -190,16 +193,16 @@ contract DIDRegistryV6 {
 
     function _vote(uint256 id) internal {
         Proposal storage p = proposals[id];
-        if (p.expiresAt == 0)                          revert ProposalNotFound();
-        if (p.executed)                                revert ProposalAlreadyExecuted();
-        if (block.timestamp > p.expiresAt)             revert ProposalExpired();
-        if (proposalVotes[id][msg.sender])             revert AlreadyVoted();
+        if (p.expiresAt == 0)               revert ProposalNotFound();
+        if (p.executed)                     revert ProposalAlreadyExecuted();
+        if (block.timestamp > p.expiresAt)  revert ProposalExpired();
+        if (proposalVotes[id][msg.sender])  revert AlreadyVoted();
 
         proposalVotes[id][msg.sender] = true;
         p.approvals++;
         emit ProposalApproved(id, msg.sender, p.approvals);
 
-        if (p.approvals >= THRESHOLD) {
+        if (p.approvals >= threshold) {
             _execute(id);
         }
     }
@@ -210,13 +213,12 @@ contract DIDRegistryV6 {
 
         if (p.pType == ProposalType.ReplacePanelist) {
             (uint8 slot, address newAddr) = abi.decode(p.data, (uint8, address));
-            if (slot >= PANELIST_COUNT) revert InvalidSlot();
-            if (newAddr != address(0) && _isPanelist[newAddr]) revert DuplicatePanelist();
-
-            address old = panelists[slot];
-            if (old != address(0)) _isPanelist[old] = false;
-            panelists[slot] = newAddr;
-            if (newAddr != address(0)) _isPanelist[newAddr] = true;
+            if (slot >= panelistList.length) revert InvalidSlot();
+            if (_isPanelist[newAddr] && panelistList[slot] != newAddr) revert DuplicatePanelist();
+            address old = panelistList[slot];
+            _isPanelist[old] = false;
+            panelistList[slot] = newAddr;
+            _isPanelist[newAddr] = true;
             emit PanelistReplaced(slot, old, newAddr);
 
         } else if (p.pType == ProposalType.Enrollment) {
@@ -229,13 +231,40 @@ contract DIDRegistryV6 {
             if (bytes(addressToCID[student]).length == 0) revert NoActiveCID();
             uint256 rIdx = revocationIndex[student];
             if (isRevoked(rIdx)) revert AlreadyRevoked();
-
             uint256 slot = rIdx / 256;
             uint256 bit  = rIdx % 256;
             revokedSlots[slot] |= (1 << bit);
             revokedAt[student] = block.timestamp;
-
             emit CredentialRevoked(student, rIdx, reason, block.timestamp);
+
+        } else if (p.pType == ProposalType.ChangeThreshold) {
+            uint8 newThreshold = abi.decode(p.data, (uint8));
+            if (newThreshold == 0 || newThreshold > panelistList.length) revert InvalidThreshold();
+            uint8 old = threshold;
+            threshold = newThreshold;
+            emit ThresholdChanged(old, newThreshold);
+
+        } else if (p.pType == ProposalType.AddPanelist) {
+            address newPanelist = abi.decode(p.data, (address));
+            if (panelistList.length >= MAX_PANELISTS) revert MaxPanelistsReached();
+            if (_isPanelist[newPanelist]) revert DuplicatePanelist();
+            panelistList.push(newPanelist);
+            _isPanelist[newPanelist] = true;
+            emit PanelistAdded(newPanelist);
+
+        } else if (p.pType == ProposalType.RemovePanelist) {
+            address panelistAddr = abi.decode(p.data, (address));
+            if (!_isPanelist[panelistAddr]) revert NotPanelist();
+            if (panelistList.length <= threshold) revert ThresholdViolation();
+            _isPanelist[panelistAddr] = false;
+            for (uint256 i = 0; i < panelistList.length; i++) {
+                if (panelistList[i] == panelistAddr) {
+                    panelistList[i] = panelistList[panelistList.length - 1];
+                    panelistList.pop();
+                    break;
+                }
+            }
+            emit PanelistRemoved(panelistAddr);
         }
 
         emit ProposalExecuted(id);
@@ -243,13 +272,6 @@ contract DIDRegistryV6 {
 
     // ── Student Enrollment ─────────────────────────────────────────────────────
 
-    /**
-     * @notice Student calls this with a pre-authorised commitment + their encryption pubkey.
-     *         Commitment must have been added via an `Enrollment` proposal first.
-     * @param metadataHash Public metadata hash (hex) for audit/display
-     * @param commitment   keccak256(SALT || email || roll || name || dept || year || secretHash)
-     * @param encPubkey    Student's x25519 encryption pubkey (32 bytes) for VC encryption
-     */
     function registerStudent(
         string calldata metadataHash,
         bytes32 commitment,
@@ -261,9 +283,7 @@ contract DIDRegistryV6 {
         require(!pendingRegistration[student], "Already pending");
         require(encPubkey.length == 32, "Bad encryption pubkey");
 
-        // Commitment is single-use
         authorizedEnrollments[commitment] = false;
-
         encryptionPubkeys[student] = encPubkey;
         pendingRegistration[student] = true;
 
@@ -271,9 +291,6 @@ contract DIDRegistryV6 {
         emit StudentRegistered(student, commitment, metadataHash, block.timestamp);
     }
 
-    /**
-     * @notice Panelist approves a pending registration. 3-of-5 → DID issued.
-     */
     function approveStudent(address student, string calldata cid) external onlyPanelist {
         if (bytes(addressToCID[student]).length != 0) revert AlreadyIssued();
         if (!pendingRegistration[student]) revert NotRegistered();
@@ -283,7 +300,7 @@ contract DIDRegistryV6 {
         approvalCount[student]++;
         emit RegistrationApproved(student, msg.sender, approvalCount[student]);
 
-        if (approvalCount[student] >= THRESHOLD) {
+        if (approvalCount[student] >= threshold) {
             uint256 rIdx = _nextRevocationIndex++;
             addressToCID[student] = cid;
             revocationIndex[student] = rIdx;
@@ -292,7 +309,7 @@ contract DIDRegistryV6 {
         }
     }
 
-    // ── Access grants (unchanged from V5) ──────────────────────────────────────
+    // ── Access grants ──────────────────────────────────────────────────────────
 
     function grantAccess(address platform, uint256 ttlSeconds) external {
         uint256 expiry = ttlSeconds == 0 ? type(uint256).max : block.timestamp + ttlSeconds;
@@ -311,8 +328,12 @@ contract DIDRegistryV6 {
         return _isPanelist[addr];
     }
 
-    function getPanelists() external view returns (address[PANELIST_COUNT] memory) {
-        return panelists;
+    function getPanelists() external view returns (address[] memory) {
+        return panelistList;
+    }
+
+    function panelistCount() external view returns (uint256) {
+        return panelistList.length;
     }
 
     function getCID(address student) external view returns (string memory) {
@@ -347,19 +368,11 @@ contract DIDRegistryV6 {
         return _nextRevocationIndex;
     }
 
-    /**
-     * @notice Returns a proposal's scalar fields (data is available via proposals() getter).
-     */
     function getProposal(uint256 id) external view returns (
-        ProposalType pType,
-        uint8 approvals,
-        bool executed,
-        uint64 expiresAt,
-        address proposer,
-        bytes memory data
+        uint8 pType, uint8 approvals, bool executed, uint64 expiresAt, address proposer, bytes memory data
     ) {
         Proposal storage p = proposals[id];
-        return (p.pType, p.approvals, p.executed, p.expiresAt, p.proposer, p.data);
+        return (uint8(p.pType), p.approvals, p.executed, p.expiresAt, p.proposer, p.data);
     }
 
     function hasVoted(uint256 id, address panelist) external view returns (bool) {

@@ -9,12 +9,13 @@ import { Stepper } from "@/components/Stepper";
 type Step = 1 | 2 | 3;
 
 interface Form {
-  name: string;
-  website: string;
-  panelists: [string, string, string, string, string];
+  name:      string;
+  website:   string;
+  panelists: string[];
+  threshold: number;
 }
 
-const EMPTY: Form = { name: "", website: "", panelists: ["", "", "", "", ""] };
+const EMPTY: Form = { name: "", website: "", panelists: ["", "", "", "", ""], threshold: 3 };
 
 export default function CreateRegistry() {
   const router = useRouter();
@@ -23,12 +24,12 @@ export default function CreateRegistry() {
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<Form>(EMPTY);
 
-  const [nameError, setNameError]     = useState<string | null>(null);
-  const [checkingName, setChecking]   = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [txHash, setTxHash]           = useState<string | null>(null);
-  const [newRegistry, setNewReg]      = useState<string | null>(null);
-  const [submitError, setSubmitErr]   = useState<string | null>(null);
+  const [nameError, setNameError]   = useState<string | null>(null);
+  const [checkingName, setChecking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [txHash, setTxHash]         = useState<string | null>(null);
+  const [newRegistry, setNewReg]    = useState<string | null>(null);
+  const [submitError, setSubmitErr] = useState<string | null>(null);
 
   const step1Valid = form.name.trim().length >= 2 && !nameError && !checkingName;
 
@@ -51,7 +52,10 @@ export default function CreateRegistry() {
     if (dup !== -1) return "duplicate";
     return null;
   });
-  const step2Valid = panelistErrors.every((e) => e === null);
+
+  const validPanelistCount = form.panelists.length >= 1 && form.panelists.length <= 10;
+  const validThreshold = form.threshold >= 1 && form.threshold <= form.panelists.length;
+  const step2Valid = panelistErrors.every((e) => e === null) && validPanelistCount && validThreshold;
 
   async function submit() {
     setSubmitErr(null); setSubmitting(true);
@@ -59,7 +63,7 @@ export default function CreateRegistry() {
       const signer = await getSigner();
       const factory = await getFactoryWrite(signer);
       const panelists = form.panelists.map((p) => p.trim());
-      const tx = await factory.createRegistry(panelists, form.name.trim(), form.website.trim());
+      const tx = await factory.createRegistry(panelists, form.threshold, form.name.trim(), form.website.trim());
       setTxHash(tx.hash);
       const receipt = await tx.wait();
       for (const log of receipt.logs as { topics: string[]; data: string }[]) {
@@ -86,6 +90,8 @@ export default function CreateRegistry() {
         </p>
         <div className="sd-card sd-card--pad" style={{ textAlign: "left", marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
           <Row label="Registry address"><AddressPill address={newRegistry} /></Row>
+          <Row label="Panelists"><span style={{ color: "var(--fg-1)" }}>{form.panelists.length}</span></Row>
+          <Row label="Threshold"><span style={{ color: "var(--fg-1)" }}>{form.threshold}-of-{form.panelists.length}</span></Row>
           {txHash && (
             <Row label="Transaction">
               <a href={explorerTx(txHash)} target="_blank" rel="noopener noreferrer"
@@ -108,7 +114,7 @@ export default function CreateRegistry() {
       <div className="sd-page-header">
         <div className="sd-eyebrow">Factory</div>
         <h1 className="sd-page-title">Create a new DID Registry</h1>
-        <p className="sd-page-sub">Deploy a sovereign, per-institution registry. Governance is 3-of-5 multisig — no owner, no single controller.</p>
+        <p className="sd-page-sub">Deploy a sovereign, per-institution registry. Choose your panelists and threshold — both can be changed later via governance.</p>
       </div>
 
       <Stepper current={step} />
@@ -181,31 +187,69 @@ function Step2({ form, setForm, errors, selfAddress, onBack, onNext, valid }: {
   selfAddress: string;
   onBack: () => void; onNext: () => void; valid: boolean;
 }) {
-  const update = (i: number, val: string) => {
-    const next = [...form.panelists] as Form["panelists"];
+  const n = form.panelists.length;
+
+  function updatePanelist(i: number, val: string) {
+    const next = [...form.panelists];
     next[i] = val;
     setForm({ ...form, panelists: next });
-  };
+  }
+
+  function addPanelist() {
+    if (n >= 10) return;
+    setForm({ ...form, panelists: [...form.panelists, ""] });
+  }
+
+  function removePanelist(i: number) {
+    if (n <= 1) return;
+    const next = form.panelists.filter((_, j) => j !== i);
+    const newThreshold = Math.min(form.threshold, next.length);
+    setForm({ ...form, panelists: next, threshold: newThreshold });
+  }
+
+  const thresholdInvalid = form.threshold < 1 || form.threshold > n;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
-        <div className="sd-card-title">Panelists</div>
-        <div className="sd-card-sub" style={{ marginTop: 4 }}>Five distinct wallet addresses. A 3-of-5 threshold is required for all governance actions.</div>
+        <div className="sd-card-title">Panelists & Threshold</div>
+        <div className="sd-card-sub" style={{ marginTop: 4 }}>Add 1–10 panelist addresses and choose how many votes are needed to execute proposals. Both can be changed later via governance.</div>
       </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {form.panelists.map((p, i) => (
           <PanelistRow key={i} index={i} value={p} error={errors[i]}
-            onChange={(v) => update(i, v)}
-            onUseSelf={i === 0 ? () => update(i, selfAddress) : undefined} />
+            canRemove={n > 1}
+            onChange={(v) => updatePanelist(i, v)}
+            onRemove={() => removePanelist(i)}
+            onUseSelf={i === 0 ? () => updatePanelist(i, selfAddress) : undefined} />
         ))}
       </div>
+
+      {n < 10 && (
+        <button type="button" onClick={addPanelist} className="sd-btn sd-btn--secondary sd-btn--sm" style={{ alignSelf: "flex-start" }}>
+          + Add panelist
+        </button>
+      )}
+
+      <Field label="Approval threshold" hint={`How many panelists must approve a proposal. Must be between 1 and ${n}.`}
+        error={thresholdInvalid ? `Threshold must be between 1 and ${n}` : null}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <input type="number" min={1} max={n} value={form.threshold}
+            onChange={(e) => setForm({ ...form, threshold: Math.max(1, Math.min(n, Number(e.target.value))) })}
+            className={`sd-input${thresholdInvalid ? " sd-input--error" : ""}`}
+            style={{ width: 80 }} />
+          <span style={{ fontSize: 13, color: "var(--fg-3)" }}>of {n} panelists</span>
+        </div>
+      </Field>
+
       <div className="sd-alert sd-alert--info" style={{ fontSize: 12 }}>
         <div>
-          <div>⚠ Each panelist must hold their own keys. If 3 keys are lost the registry becomes frozen.</div>
-          <div style={{ marginTop: 4 }}>✓ Panelists can be replaced individually through a 3-of-5 governance vote.</div>
+          <div>⚠ Each panelist must hold their own keys. If fewer than {form.threshold} keys are available the registry becomes frozen.</div>
+          <div style={{ marginTop: 4 }}>✓ Panelists can be added or removed, and threshold can be changed, through governance votes.</div>
         </div>
       </div>
+
       <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
         <button onClick={onBack} className="sd-btn sd-btn--secondary">← Back</button>
         <button disabled={!valid} onClick={onNext} className="sd-btn sd-btn--primary">Next →</button>
@@ -214,9 +258,10 @@ function Step2({ form, setForm, errors, selfAddress, onBack, onNext, valid }: {
   );
 }
 
-function PanelistRow({ index, value, error, onChange, onUseSelf }: {
+function PanelistRow({ index, value, error, canRemove, onChange, onRemove, onUseSelf }: {
   index: number; value: string; error: string | null;
-  onChange: (v: string) => void; onUseSelf?: () => void;
+  canRemove: boolean;
+  onChange: (v: string) => void; onRemove: () => void; onUseSelf?: () => void;
 }) {
   const valid = value && !error;
   return (
@@ -235,6 +280,9 @@ function PanelistRow({ index, value, error, onChange, onUseSelf }: {
         </div>
         {onUseSelf && (
           <button onClick={onUseSelf} className="sd-btn sd-btn--ghost sd-btn--sm" style={{ whiteSpace: "nowrap" }}>Use my wallet</button>
+        )}
+        {canRemove && (
+          <button onClick={onRemove} className="sd-btn sd-btn--ghost sd-btn--sm" style={{ color: "var(--danger)", padding: "0 8px" }} title="Remove panelist">×</button>
         )}
       </div>
       {error && error !== "required" && (
@@ -257,7 +305,8 @@ function Step3({ form, onBack, onSubmit, submitting, txHash, error }: {
       <div style={{ background: "var(--bg-surface-1)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
         <Row label="Name"><span style={{ color: "var(--fg-1)", fontWeight: 500 }}>{form.name}</span></Row>
         <Row label="Website"><span style={{ color: "var(--fg-2)" }}>{form.website || <em style={{ color: "var(--fg-4)" }}>none</em>}</span></Row>
-        <Row label="Threshold"><span style={{ color: "var(--fg-1)", fontWeight: 500 }}>3-of-5</span></Row>
+        <Row label="Panelists"><span style={{ color: "var(--fg-1)", fontWeight: 500 }}>{form.panelists.length}</span></Row>
+        <Row label="Threshold"><span style={{ color: "var(--fg-1)", fontWeight: 500 }}>{form.threshold}-of-{form.panelists.length}</span></Row>
       </div>
       <div>
         <div style={{ font: "var(--fw-semibold) 11px/1 var(--font-sans)", color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Panelists</div>

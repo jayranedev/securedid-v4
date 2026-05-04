@@ -2,7 +2,7 @@
 
 const STEPS = [
   { n: 1, label: "Institution", sub: "Name & website" },
-  { n: 2, label: "Panelists",   sub: "Five addresses" },
+  { n: 2, label: "Panelists",   sub: "Addresses & threshold" },
   { n: 3, label: "Review",      sub: "Deploy" },
 ];
 

@@ -108,7 +108,7 @@ export default function Page() {
         <div className="sd-alert sd-alert--danger">
           <div>
             <div className="sd-alert__title">Credential revoked</div>
-            <div>A 3-of-5 panelist vote has revoked your DID at this institution. Contact the institution&apos;s admin office.</div>
+            <div>A panelist vote has revoked your DID at this institution. Contact the institution&apos;s admin office.</div>
           </div>
         </div>
       )}

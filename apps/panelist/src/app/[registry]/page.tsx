@@ -7,7 +7,7 @@ import { ethers } from "ethers";
 import {
   useWallet, AddressPill, getRegistryRead, getRegistryWrite,
   fetchAllProposals, decodeProposalData, proposalTypeLabel, ProposalType,
-  ProposalSummary, explorerTx, queryFilterAll,
+  ProposalSummary, queryFilterAll,
 } from "@securedid/shared";
 import { NewProposalModal } from "@/components/NewProposalModal";
 import { BulkEnrollModal } from "@/components/BulkEnrollModal";
@@ -21,6 +21,7 @@ export default function RegistryPage() {
 
   const [name, setName]             = useState<string>("");
   const [panelists, setPanelists]   = useState<string[]>([]);
+  const [threshold, setThreshold]   = useState<number>(1);
   const [isPanelist, setIsPanelist] = useState(false);
   const [proposals, setProposals]   = useState<ProposalSummary[]>([]);
   const [deployedAt, setDeployedAt] = useState<number | undefined>();
@@ -36,11 +37,13 @@ export default function RegistryPage() {
     setLoading(true);
     try {
       const reg = getRegistryRead(registry);
-      const [ps, proposalsList] = await Promise.all([
+      const [ps, thresh, proposalsList] = await Promise.all([
         reg.getPanelists() as Promise<string[]>,
+        reg.threshold() as Promise<bigint>,
         fetchAllProposals(registry),
       ]);
       setPanelists(ps.map((p) => p.toLowerCase()));
+      setThreshold(Number(thresh));
       if (address) setIsPanelist(await reg.isPanelist(address));
       setProposals(proposalsList.sort((a, b) => Number(b.id - a.id)));
 
@@ -89,7 +92,9 @@ export default function RegistryPage() {
           <h1 className="sd-page-title">{name || "Registry"}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
             <AddressPill address={registry} />
-            <span style={{ color: "var(--fg-4)", fontSize: 12 }}>· Threshold 3-of-5</span>
+            <span style={{ color: "var(--fg-4)", fontSize: 12 }}>
+              · Threshold {threshold}-of-{panelists.length}
+            </span>
             {isPanelist && <span className="sd-pill sd-pill--you">You are a panelist</span>}
           </div>
         </div>
@@ -109,7 +114,7 @@ export default function RegistryPage() {
         {([
           ["proposals", `Proposals${activeProposals.length ? ` (${activeProposals.length})` : ""}`],
           ["students",  "Pending Students"],
-          ["panelists", "Panelists"],
+          ["panelists", `Panelists (${panelists.length})`],
         ] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={`sd-tab${tab === k ? " active" : ""}`}>{label}</button>
         ))}
@@ -118,19 +123,20 @@ export default function RegistryPage() {
       {loading && <div style={{ color: "var(--fg-4)", fontSize: 13, paddingTop: 20 }}>Loading…</div>}
 
       {!loading && tab === "proposals" && (
-        <ProposalsList proposals={proposals} isPanelist={isPanelist} myAddr={address} onVote={vote} busy={busy} />
+        <ProposalsList proposals={proposals} isPanelist={isPanelist} myAddr={address} threshold={threshold} onVote={vote} busy={busy} />
       )}
       {!loading && tab === "students" && (
-        <PendingStudents registry={registry} isPanelist={isPanelist} onChange={refresh} deployedAt={deployedAt} institutionName={name} />
+        <PendingStudents registry={registry} isPanelist={isPanelist} threshold={threshold} onChange={refresh} deployedAt={deployedAt} institutionName={name} />
       )}
       {!loading && tab === "panelists" && (
-        <PanelistList panelists={panelists} myAddr={address} />
+        <PanelistList panelists={panelists} myAddr={address} threshold={threshold} />
       )}
 
       {showModal && isPanelist && (
         <NewProposalModal
           registry={registry}
           panelistCount={panelists.length}
+          threshold={threshold}
           onClose={() => setShowModal(false)}
           onCreated={async () => { setShowModal(false); await refresh(); }}
         />
@@ -147,8 +153,9 @@ export default function RegistryPage() {
   );
 }
 
-function ProposalsList({ proposals, isPanelist, myAddr, onVote, busy }: {
+function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy }: {
   proposals: ProposalSummary[]; isPanelist: boolean; myAddr: string | null;
+  threshold: number;
   onVote: (id: bigint) => void; busy: string | null;
 }) {
   const { address } = useWallet();
@@ -172,7 +179,7 @@ function ProposalsList({ proposals, isPanelist, myAddr, onVote, busy }: {
     return (
       <div className="sd-empty">
         <div className="sd-empty__title">No proposals yet</div>
-        <p className="sd-empty__sub">Create the first proposal to start the 3-of-5 governance process.</p>
+        <p className="sd-empty__sub">Create the first proposal to start the governance process.</p>
       </div>
     );
   }
@@ -212,6 +219,15 @@ function ProposalsList({ proposals, isPanelist, myAddr, onVote, busy }: {
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>new: <AddressPill address={decoded.newPanelist as string} head={10} tail={4} /></div>
                     </>
                   )}
+                  {p.pType === ProposalType.ChangeThreshold && (
+                    <div>new threshold: <span style={{ color: "var(--fg-1)", fontFamily: "var(--font-sans)" }}>{String(decoded.newThreshold)}</span></div>
+                  )}
+                  {p.pType === ProposalType.AddPanelist && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>add: <AddressPill address={decoded.newPanelist as string} head={10} tail={4} /></div>
+                  )}
+                  {p.pType === ProposalType.RemovePanelist && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>remove: <AddressPill address={decoded.panelistAddr as string} head={10} tail={4} /></div>
+                  )}
                 </div>
 
                 <div style={{ marginTop: 8, fontSize: 12, color: "var(--fg-4)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -222,13 +238,13 @@ function ProposalsList({ proposals, isPanelist, myAddr, onVote, busy }: {
 
               <div style={{ textAlign: "center", flexShrink: 0 }}>
                 <div style={{ font: "var(--fw-regular) 36px/1 var(--font-display)", color: "var(--fg-1)" }}>{p.approvals}</div>
-                <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of 3</div>
+                <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of {threshold}</div>
               </div>
             </div>
 
             <div className="sd-progress" style={{ marginTop: 14 }}>
               <div className={`sd-progress__fill${p.executed ? " sd-progress--success" : ""}`}
-                style={{ width: `${Math.min(100, (p.approvals / 3) * 100)}%` }} />
+                style={{ width: `${Math.min(100, (p.approvals / threshold) * 100)}%` }} />
             </div>
 
             {isPanelist && !p.executed && !expired && !myVote && (
@@ -287,12 +303,11 @@ async function uploadVC(vcJson: string, student: string): Promise<string> {
     const { IpfsHash } = await res.json() as { IpfsHash: string };
     return IpfsHash;
   }
-  // No Pinata configured — store as base64 data URI directly on-chain (demo mode)
   return "data:application/json;base64," + btoa(unescape(encodeURIComponent(vcJson)));
 }
 
-function PendingStudents({ registry, isPanelist, onChange, deployedAt, institutionName }: {
-  registry: string; isPanelist: boolean; onChange: () => void; deployedAt?: number; institutionName: string;
+function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt, institutionName }: {
+  registry: string; isPanelist: boolean; threshold: number; onChange: () => void; deployedAt?: number; institutionName: string;
 }) {
   const { getSigner } = useWallet();
   const [pending, setPending] = useState<{ student: string; approvals: number }[]>([]);
@@ -343,14 +358,14 @@ function PendingStudents({ registry, isPanelist, onChange, deployedAt, instituti
   }
 
   async function approve(student: string, approvals: number) {
-    const isFinal = approvals >= 2; // this vote will be the 3rd → triggers DID issuance
+    const isFinal = approvals >= threshold - 1;
     const studentCid = cid[student] || "";
     if (isFinal && !studentCid) { alert("This is the final approval — click Issue VC first to generate the credential"); return; }
     setBusy(student);
     try {
       const signer = await getSigner();
       const reg = await getRegistryWrite(registry, signer);
-      const tx = await reg.approveStudent(student, studentCid); // empty string for non-final approvals
+      const tx = await reg.approveStudent(student, studentCid);
       await tx.wait();
       onChange();
       setPending((p) => p.filter((x) => x.student !== student));
@@ -381,20 +396,18 @@ function PendingStudents({ registry, isPanelist, onChange, deployedAt, instituti
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ font: "var(--fw-regular) 32px/1 var(--font-display)", color: "var(--fg-1)" }}>{approvals}</div>
-              <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of 3</div>
+              <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of {threshold}</div>
             </div>
           </div>
 
           {isPanelist && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
-              {approvals >= 2 ? (
-                // Final approver — fill student details + issue VC first
+              {approvals >= threshold - 1 ? (
                 <>
                   <div style={{ fontSize: 12, color: "var(--accent-700, #3730a3)", fontWeight: 500 }}>
                     You are the final approver — fill student details, issue the VC, then approve.
                   </div>
 
-                  {/* Student detail fields */}
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {([
                       ["name",       "Full name",   "Jane Doe"],
@@ -436,7 +449,6 @@ function PendingStudents({ registry, isPanelist, onChange, deployedAt, instituti
                   )}
                 </>
               ) : (
-                // Early approver — just vote, no VC needed
                 <button onClick={() => approve(student, approvals)} disabled={busy !== null}
                   className="sd-btn sd-btn--primary" style={{ alignSelf: "flex-start" }}>
                   {busy === student ? "Approving…" : "✓ Approve"}
@@ -450,16 +462,21 @@ function PendingStudents({ registry, isPanelist, onChange, deployedAt, instituti
   );
 }
 
-function PanelistList({ panelists, myAddr }: { panelists: string[]; myAddr: string | null }) {
+function PanelistList({ panelists, myAddr, threshold }: { panelists: string[]; myAddr: string | null; threshold: number }) {
   return (
-    <div className="sd-card" style={{ overflow: "hidden" }}>
-      {panelists.map((p, i) => (
-        <div key={p} className="sd-row">
-          <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "var(--bg-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: "var(--fg-3)" }}>{i + 1}</span>
-          <div style={{ flex: 1 }}><AddressPill address={p} head={10} tail={6} /></div>
-          {myAddr && p === myAddr.toLowerCase() && <span className="sd-pill sd-pill--you">YOU</span>}
-        </div>
-      ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="sd-alert sd-alert--info" style={{ fontSize: 12 }}>
+        Current threshold: <strong>{threshold}-of-{panelists.length}</strong> — proposals execute when {threshold} panelist{threshold !== 1 ? "s" : ""} approve.
+      </div>
+      <div className="sd-card" style={{ overflow: "hidden" }}>
+        {panelists.map((p, i) => (
+          <div key={p} className="sd-row">
+            <span style={{ width: 28, height: 28, flexShrink: 0, borderRadius: "50%", background: "var(--bg-surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 600, color: "var(--fg-3)" }}>{i + 1}</span>
+            <div style={{ flex: 1 }}><AddressPill address={p} head={10} tail={6} /></div>
+            {myAddr && p === myAddr.toLowerCase() && <span className="sd-pill sd-pill--you">YOU</span>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

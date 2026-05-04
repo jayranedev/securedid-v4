@@ -4,13 +4,14 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { useWallet, getRegistryWrite, computeCommitment } from "@securedid/shared";
 
-type Kind = "enrollment" | "revocation" | "replace";
+type Kind = "enrollment" | "revocation" | "replace" | "changeThreshold" | "addPanelist" | "removePanelist";
 
 export function NewProposalModal({
-  registry, panelistCount, onClose, onCreated,
+  registry, panelistCount, threshold, onClose, onCreated,
 }: {
   registry: string;
   panelistCount: number;
+  threshold: number;
   onClose: () => void;
   onCreated: () => Promise<void>;
 }) {
@@ -32,6 +33,9 @@ export function NewProposalModal({
   const [reason, setReason]         = useState("");
   const [slot, setSlot]             = useState(0);
   const [newAddr, setNewAddr]       = useState("");
+  const [newThreshold, setNewThreshold] = useState(threshold);
+  const [addAddr, setAddAddr]       = useState("");
+  const [removeAddr, setRemoveAddr] = useState("");
   const [busy, setBusy]             = useState(false);
   const [msg, setMsg]               = useState<string | null>(null);
   const [copied, setCopied]         = useState<"commitment" | "secret" | null>(null);
@@ -95,18 +99,36 @@ export function NewProposalModal({
       } else if (kind === "revocation") {
         if (!ethers.isAddress(studentAddr)) throw new Error("Invalid student address");
         if (!reason.trim()) throw new Error("Reason is required");
-      } else {
+        setMsg("Checking student on-chain…");
+        const { getRegistryRead } = await import("@securedid/shared");
+        const reg = getRegistryRead(registry);
+        const cid = await reg.getCID(studentAddr) as string;
+        if (!cid || cid.length === 0) throw new Error("This address has no active DID on this registry. Make sure the student's DID has been fully issued.");
+        setMsg(null);
+      } else if (kind === "replace") {
         if (!ethers.isAddress(newAddr)) throw new Error("Invalid new panelist address");
         if (slot < 0 || slot >= panelistCount) throw new Error(`Slot must be 0..${panelistCount - 1}`);
+      } else if (kind === "changeThreshold") {
+        if (newThreshold < 1 || newThreshold > panelistCount) throw new Error(`Threshold must be between 1 and ${panelistCount}`);
+      } else if (kind === "addPanelist") {
+        if (!ethers.isAddress(addAddr)) throw new Error("Invalid panelist address");
+        if (panelistCount >= 10) throw new Error("Maximum 10 panelists already reached");
+      } else if (kind === "removePanelist") {
+        if (!ethers.isAddress(removeAddr)) throw new Error("Invalid panelist address");
+        if (panelistCount <= threshold) throw new Error(`Cannot remove: panelist count (${panelistCount}) must exceed threshold (${threshold})`);
       }
+
       setBusy(true);
       const signer = await getSigner();
       const reg = await getRegistryWrite(registry, signer);
 
       let tx: ethers.ContractTransactionResponse;
-      if (kind === "enrollment")  tx = await reg.proposeEnrollment(finalCommitment);
-      else if (kind === "revocation") tx = await reg.proposeRevocation(studentAddr, reason);
-      else tx = await reg.proposeReplacePanelist(slot, newAddr);
+      if (kind === "enrollment")         tx = await reg.proposeEnrollment(finalCommitment);
+      else if (kind === "revocation")    tx = await reg.proposeRevocation(studentAddr, reason);
+      else if (kind === "replace")       tx = await reg.proposeReplacePanelist(slot, newAddr);
+      else if (kind === "changeThreshold") tx = await reg.proposeChangeThreshold(newThreshold);
+      else if (kind === "addPanelist")   tx = await reg.proposeAddPanelist(addAddr);
+      else                               tx = await reg.proposeRemovePanelist(removeAddr);
 
       setMsg(`Broadcasting — tx ${tx.hash.slice(0, 12)}…`);
       await tx.wait();
@@ -117,6 +139,15 @@ export function NewProposalModal({
     } finally { setBusy(false); }
   }
 
+  const KINDS: [Kind, string, string][] = [
+    ["enrollment",      "Enrollment",        "Pre-authorize a student commitment"],
+    ["revocation",      "Revocation",        "Revoke a student's credential"],
+    ["replace",         "Replace panelist",  "Swap a panelist slot"],
+    ["changeThreshold", "Change threshold",  "Change the vote threshold"],
+    ["addPanelist",     "Add panelist",      "Add a new panelist"],
+    ["removePanelist",  "Remove panelist",   "Remove an existing panelist"],
+  ];
+
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 }}
@@ -124,7 +155,7 @@ export function NewProposalModal({
     >
       <div
         className="sd-card sd-card--pad"
-        style={{ maxWidth: 520, width: "100%", display: "flex", flexDirection: "column", gap: 20, boxShadow: "var(--shadow-lg)" }}
+        style={{ maxWidth: 560, width: "100%", display: "flex", flexDirection: "column", gap: 20, boxShadow: "var(--shadow-lg)", maxHeight: "90vh", overflowY: "auto" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -132,28 +163,25 @@ export function NewProposalModal({
           <button onClick={onClose} className="sd-btn sd-btn--ghost sd-btn--sm" style={{ fontSize: 20, lineHeight: 1, padding: "0 8px" }}>×</button>
         </div>
 
+        {/* Proposal type selector */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-          {([
-            ["enrollment", "Enrollment",     "Pre-authorize a student commitment"],
-            ["revocation", "Revocation",     "Revoke a student's credential"],
-            ["replace",    "Replace panelist","Swap a panelist slot"],
-          ] as [Kind, string, string][]).map(([k, label, hint]) => (
+          {KINDS.map(([k, label, hint]) => (
             <button key={k} type="button" onClick={() => setKind(k)}
               style={{
-                padding: "12px 14px", borderRadius: "var(--radius-md)", border: "1px solid",
+                padding: "10px 12px", borderRadius: "var(--radius-md)", border: "1px solid",
                 borderColor: kind === k ? "var(--accent)" : "var(--border-default)",
                 background: kind === k ? "var(--accent-50)" : "var(--bg-surface-0)",
                 textAlign: "left", cursor: "pointer",
               }}>
-              <div style={{ font: "var(--fw-semibold) 13px/1 var(--font-sans)", color: kind === k ? "var(--accent-700)" : "var(--fg-1)" }}>{label}</div>
-              <div style={{ font: "var(--fw-regular) 11px/1.4 var(--font-sans)", color: "var(--fg-4)", marginTop: 4 }}>{hint}</div>
+              <div style={{ font: "var(--fw-semibold) 12px/1.2 var(--font-sans)", color: kind === k ? "var(--accent-700)" : "var(--fg-1)" }}>{label}</div>
+              <div style={{ font: "var(--fw-regular) 10px/1.3 var(--font-sans)", color: "var(--fg-4)", marginTop: 3 }}>{hint}</div>
             </button>
           ))}
         </div>
 
+        {/* Enrollment */}
         {kind === "enrollment" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Mode toggle */}
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={() => setUseBuilder(true)}
                 style={{ flex: 1, padding: "8px", borderRadius: "var(--radius-md)", border: "1px solid", cursor: "pointer",
@@ -239,6 +267,7 @@ export function NewProposalModal({
           </div>
         )}
 
+        {/* Revocation */}
         {kind === "revocation" && (
           <>
             <Field label="Student address">
@@ -252,6 +281,7 @@ export function NewProposalModal({
           </>
         )}
 
+        {/* Replace panelist */}
         {kind === "replace" && (
           <>
             <Field label="Slot to replace">
@@ -266,6 +296,35 @@ export function NewProposalModal({
                 placeholder="0x…" className="sd-input sd-input--mono" />
             </Field>
           </>
+        )}
+
+        {/* Change threshold */}
+        {kind === "changeThreshold" && (
+          <Field label="New threshold" hint={`Current: ${threshold}-of-${panelistCount}. Must be between 1 and ${panelistCount}.`}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <input type="number" min={1} max={panelistCount} value={newThreshold}
+                onChange={(e) => setNewThreshold(Math.max(1, Math.min(panelistCount, Number(e.target.value))))}
+                className="sd-input" style={{ width: 80 }} />
+              <span style={{ fontSize: 13, color: "var(--fg-3)" }}>of {panelistCount} panelists</span>
+            </div>
+          </Field>
+        )}
+
+        {/* Add panelist */}
+        {kind === "addPanelist" && (
+          <Field label="New panelist address" hint={`Current panelists: ${panelistCount}/10`}>
+            <input value={addAddr} onChange={(e) => setAddAddr(e.target.value.trim())}
+              placeholder="0x…" className="sd-input sd-input--mono" />
+          </Field>
+        )}
+
+        {/* Remove panelist */}
+        {kind === "removePanelist" && (
+          <Field label="Panelist address to remove"
+            hint={`Panelist count (${panelistCount}) must remain above threshold (${threshold}) after removal.`}>
+            <input value={removeAddr} onChange={(e) => setRemoveAddr(e.target.value.trim())}
+              placeholder="0x…" className="sd-input sd-input--mono" />
+          </Field>
         )}
 
         {msg && (

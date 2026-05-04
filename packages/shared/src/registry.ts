@@ -16,14 +16,12 @@ export async function queryFilterAll(
 
   let start: number;
   if (typeof fromBlock === "object" && fromBlock !== null && "fromTimestamp" in fromBlock) {
-    // Convert deploy timestamp → approximate block, with a 500-block safety buffer
     const secondsAgo = Math.max(0, Math.floor(Date.now() / 1000) - fromBlock.fromTimestamp);
     const blocksAgo  = Math.ceil(secondsAgo / BASE_SEPOLIA_BLOCK_TIME) + 500;
     start = Math.max(0, latest - blocksAgo);
   } else if (typeof fromBlock === "number") {
     start = fromBlock;
   } else {
-    // Fallback: last 100k blocks (~2-3 days on Base Sepolia)
     start = Math.max(0, latest - 100_000);
   }
 
@@ -49,10 +47,18 @@ export function getFactoryRead(factoryAddress: string): Contract {
   return new Contract(factoryAddress, FACTORY_ABI, getReadProvider());
 }
 
+export async function getFactoryWrite(factoryAddress: string, signer: ethers.Signer): Promise<Contract> {
+  if (!factoryAddress) throw new Error("Factory address not configured");
+  return new Contract(factoryAddress, FACTORY_ABI, signer);
+}
+
 export enum ProposalType {
-  ReplacePanelist = 0,
-  Enrollment      = 1,
-  Revocation      = 2,
+  ReplacePanelist  = 0,
+  Enrollment       = 1,
+  Revocation       = 2,
+  ChangeThreshold  = 3,
+  AddPanelist      = 4,
+  RemovePanelist   = 5,
 }
 
 export interface ProposalSummary {
@@ -105,9 +111,24 @@ export function decodeProposalData(pType: ProposalType, data: string): Record<st
     const [slot, newAddr] = coder.decode(["uint8", "address"], data);
     return { slot: Number(slot), newPanelist: (newAddr as string).toLowerCase() };
   }
+  if (pType === ProposalType.ChangeThreshold) {
+    const [newThreshold] = coder.decode(["uint8"], data);
+    return { newThreshold: Number(newThreshold) };
+  }
+  if (pType === ProposalType.AddPanelist) {
+    const [newPanelist] = coder.decode(["address"], data);
+    return { newPanelist: (newPanelist as string).toLowerCase() };
+  }
+  if (pType === ProposalType.RemovePanelist) {
+    const [panelistAddr] = coder.decode(["address"], data);
+    return { panelistAddr: (panelistAddr as string).toLowerCase() };
+  }
   return {};
 }
 
 export function proposalTypeLabel(pType: ProposalType): string {
-  return ["Replace Panelist", "Enrollment", "Revocation"][pType] ?? "Unknown";
+  return (
+    ["Replace Panelist", "Enrollment", "Revocation", "Change Threshold", "Add Panelist", "Remove Panelist"][pType]
+    ?? "Unknown"
+  );
 }
