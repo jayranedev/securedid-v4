@@ -12,7 +12,7 @@ export interface EncryptedVC {
 /** Derive a deterministic AES-256-GCM key from the wallet owner's signature. */
 export async function deriveVCKey(signer: ethers.Signer): Promise<CryptoKey> {
   const sig = await signer.signMessage(KEY_MSG);
-  const keyBytes = ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes(sig)));
+  const keyBytes = new Uint8Array(ethers.getBytes(ethers.keccak256(ethers.toUtf8Bytes(sig))));
   return crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
@@ -34,10 +34,12 @@ export async function encryptVC(vcJson: string, key: CryptoKey): Promise<Encrypt
 
 /** AES-256-GCM decrypt an EncryptedVC payload back to VC JSON. */
 export async function decryptVC(payload: EncryptedVC, key: CryptoKey): Promise<string> {
+  const iv = new Uint8Array(ethers.getBytes(payload.iv));
+  const data = new Uint8Array(ethers.getBytes(payload.data));
   const plain = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: ethers.getBytes(payload.iv) },
+    { name: "AES-GCM", iv },
     key,
-    ethers.getBytes(payload.data),
+    data,
   );
   return new TextDecoder().decode(plain);
 }
