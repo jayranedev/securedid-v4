@@ -20,7 +20,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https:",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https:",
-              "frame-src https://verify.walletconnect.org https://*.walletconnect.com",
+              "frame-src 'self'",
             ].join("; "),
           },
         ],
