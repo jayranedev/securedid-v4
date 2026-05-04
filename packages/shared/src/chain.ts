@@ -4,10 +4,11 @@ export const CHAIN_ID = 84532;
 export const CHAIN_ID_HEX = "0x14A34";
 export const CHAIN_NAME = "Base Sepolia";
 export const RPC_URL = "https://base-sepolia.g.alchemy.com/v2/demo";
+export const RPC_PROXY_PATH = "/api/rpc";
 export const EXPLORER_URL = "https://sepolia.basescan.org";
 
 export function getReadProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(RPC_URL);
+  return new ethers.JsonRpcProvider(typeof window === "undefined" ? RPC_URL : RPC_PROXY_PATH);
 }
 
 export async function switchToBaseSepolia(provider: BrowserProvider): Promise<void> {
