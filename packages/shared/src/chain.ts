@@ -8,7 +8,8 @@ export const RPC_PROXY_PATH = "/api/rpc";
 export const EXPLORER_URL = "https://sepolia.basescan.org";
 
 export function getReadProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(typeof window === "undefined" ? RPC_URL : RPC_PROXY_PATH);
+  const rpcUrl = typeof window === "undefined" ? RPC_URL : new URL(RPC_PROXY_PATH, window.location.origin).toString();
+  return new ethers.JsonRpcProvider(rpcUrl);
 }
 
 export async function switchToBaseSepolia(provider: BrowserProvider): Promise<void> {
