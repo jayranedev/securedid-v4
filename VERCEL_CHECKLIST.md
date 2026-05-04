@@ -103,5 +103,5 @@ NEXT_PUBLIC_PLATFORM_ADDRESS=0x0000000000000000000000000000000000000003
 
 ---
 **Factory Contract (Base Sepolia)**: `0x0d22eF5A76d7a324c4177B2751570F54e4EC0B86`
-**RPC Endpoint**: `https://base-sepolia.g.alchemy.com/v2/demo`
+**RPC Endpoint**: `https://sepolia.base.org`
 **Chain ID**: 84532

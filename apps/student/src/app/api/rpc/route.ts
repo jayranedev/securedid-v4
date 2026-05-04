@@ -3,9 +3,10 @@ export const runtime = "nodejs";
 type CachedResponse = { status: number; body: string; contentType: string; expiresAt: number };
 const cache = new Map<string, CachedResponse>();
 const CACHE_TTL_MS = 5_000;
+const DEFAULT_RPC_URL = "https://sepolia.base.org";
 
 export async function POST(request: Request): Promise<Response> {
-  const rpcUrl = process.env.BASE_RPC_URL ?? "https://base-sepolia.g.alchemy.com/v2/demo";
+  const rpcUrl = process.env.BASE_RPC_URL ?? DEFAULT_RPC_URL;
   const body = await request.text();
   const cacheKey = body;
   const now = Date.now();

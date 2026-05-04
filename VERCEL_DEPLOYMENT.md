@@ -39,6 +39,7 @@ For **each app**, go to [vercel.com/new](https://vercel.com/new):
    NEXT_PUBLIC_FACTORY_ADDRESS=0x0d22eF5A76d7a324c4177B2751570F54e4EC0B86
    NEXT_PUBLIC_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs
    NEXT_PUBLIC_PINATA_JWT=<your-pinata-jwt>
+   BASE_RPC_URL=https://sepolia.base.org
    ```
 7. **College & University only** (add):
    ```
@@ -63,6 +64,7 @@ Vercel dashboard → each project → Settings → Environment Variables:
 | `NEXT_PUBLIC_FACTORY_ADDRESS` | `0x0d22eF5A76d7a324c4177B2751570F54e4EC0B86` | All |
 | `NEXT_PUBLIC_IPFS_GATEWAY` | `https://gateway.pinata.cloud/ipfs` | All |
 | `NEXT_PUBLIC_PINATA_JWT` | Your Pinata JWT | All |
+| `BASE_RPC_URL` | `https://sepolia.base.org` | All |
 | `NEXT_PUBLIC_PLATFORM_ADDRESS` | `0x0000...0002` | College only |
 | `NEXT_PUBLIC_PLATFORM_ADDRESS` | `0x0000...0003` | University only |
 
@@ -82,12 +84,12 @@ After each deploy:
 - Verify all env vars are present
 
 ### RPC Connection Errors
-- RPC endpoint is set to Alchemy's Base Sepolia in `chain.ts`
+- RPC endpoint is set to Base Sepolia public RPC in `chain.ts`
 - If it fails, check network in MetaMask (should be Base Sepolia, chain ID 84532)
 
 ### CORS Errors
-- Alchemy endpoint (`https://base-sepolia.g.alchemy.com/v2/demo`) has CORS enabled
-- If using custom RPC, ensure it has CORS headers
+- The server-side proxy uses the Base Sepolia public RPC by default
+- If you set a custom RPC, ensure it is reachable from Vercel and not rate-limited
 
 ## Redeployment
 
