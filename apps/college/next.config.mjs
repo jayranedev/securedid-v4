@@ -16,7 +16,7 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: https:",
           "font-src 'self' data:",
-          "connect-src 'self' https://sepolia.base.org https://*.base.org wss://*.base.org https://*.basescan.org https://*.pinata.cloud https://ipfs.io https://*.ipfs.io",
+          "connect-src 'self' https://sepolia.base.org https://base-sepolia.g.alchemy.com https://*.base.org wss://*.base.org https://*.basescan.org https://*.pinata.cloud https://ipfs.io https://*.ipfs.io",
           "frame-ancestors 'none'",
         ].join("; ") },
       ],

@@ -19,7 +19,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://sepolia.base.org https://*.base.org wss://*.base.org https://*.basescan.org",
+              "connect-src 'self' https://sepolia.base.org https://base-sepolia.g.alchemy.com https://*.base.org wss://*.base.org https://*.basescan.org",
               "frame-ancestors 'none'",
             ].join("; "),
           },
