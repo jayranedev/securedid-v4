@@ -2,14 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@securedid/shared"],
-  async rewrites() {
-    return [
-      {
-        source: "/api/rpc",
-        destination: "https://base-sepolia.g.alchemy.com/v2/demo",
-      },
-    ];
-  },
   async headers() {
     return [{
       source: "/:path*",

@@ -3,12 +3,15 @@ import { ethers, BrowserProvider } from "ethers";
 export const CHAIN_ID = 84532;
 export const CHAIN_ID_HEX = "0x14A34";
 export const CHAIN_NAME = "Base Sepolia";
-export const RPC_URL = "https://base-sepolia.g.alchemy.com/v2/demo";
 export const RPC_PROXY_PATH = "/api/rpc";
 export const EXPLORER_URL = "https://sepolia.basescan.org";
 
+function getServerRpcUrl(): string {
+  return process.env.BASE_RPC_URL ?? "https://base-sepolia.g.alchemy.com/v2/demo";
+}
+
 export function getReadProvider(): ethers.JsonRpcProvider {
-  const rpcUrl = typeof window === "undefined" ? RPC_URL : new URL(RPC_PROXY_PATH, window.location.origin).toString();
+  const rpcUrl = typeof window === "undefined" ? getServerRpcUrl() : new URL(RPC_PROXY_PATH, window.location.origin).toString();
   return new ethers.JsonRpcProvider(rpcUrl);
 }
 
@@ -29,7 +32,7 @@ export async function switchToBaseSepolia(provider: BrowserProvider): Promise<vo
         chainId: CHAIN_ID_HEX,
         chainName: CHAIN_NAME,
         nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-        rpcUrls: [RPC_URL],
+        rpcUrls: [getServerRpcUrl()],
         blockExplorerUrls: [EXPLORER_URL],
       }],
     });
