@@ -3,7 +3,7 @@ import { ethers, BrowserProvider } from "ethers";
 export const CHAIN_ID = 84532;
 export const CHAIN_ID_HEX = "0x14A34";
 export const CHAIN_NAME = "Base Sepolia";
-export const RPC_URL = "https://sepolia.base.org";
+export const RPC_URL = "https://base-sepolia.g.alchemy.com/v2/demo";
 export const EXPLORER_URL = "https://sepolia.basescan.org";
 
 export function getReadProvider(): ethers.JsonRpcProvider {

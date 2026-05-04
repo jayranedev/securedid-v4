@@ -69,7 +69,7 @@ export default function Home() {
               <div className="sd-seat__name">{r.name}</div>
               {r.website && <div style={{ font: "var(--fw-regular) 12px/1 var(--font-sans)", color: "var(--accent)", marginTop: 4 }}>{r.website}</div>}
               <div className="sd-seat__stats" style={{ marginTop: 14 }}>
-                <AddressPill address={r.registry} />
+                <AddressPill address={r.registry} showExplorer={false} />
               </div>
               <div style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--accent)", marginTop: 12 }}>Open →</div>
             </Link>
