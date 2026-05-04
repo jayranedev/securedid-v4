@@ -1,3 +1,16 @@
 {
-  "buildCommand": "npm run build --workspace=$VERCEL_GIT_REPO_OWNER/$(echo $VERCEL_GIT_REPO_SLUG | sed 's/-/ /g' | awk '{print $(NF)}')"
+  "version": 2,
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "NEXT_PUBLIC_FACTORY_ADDRESS": "@factory_address",
+    "NEXT_PUBLIC_IPFS_GATEWAY": "@ipfs_gateway",
+    "NEXT_PUBLIC_PINATA_JWT": "@pinata_jwt"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
 }
+
