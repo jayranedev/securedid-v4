@@ -40,6 +40,7 @@ For **each app**, go to [vercel.com/new](https://vercel.com/new):
    NEXT_PUBLIC_IPFS_GATEWAY=https://gateway.pinata.cloud/ipfs
    NEXT_PUBLIC_PINATA_JWT=<your-pinata-jwt>
    BASE_RPC_URL=https://sepolia.base.org
+   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=<your-walletconnect-project-id>
    ```
 7. **College & University only** (add):
    ```
@@ -65,6 +66,7 @@ Vercel dashboard → each project → Settings → Environment Variables:
 | `NEXT_PUBLIC_IPFS_GATEWAY` | `https://gateway.pinata.cloud/ipfs` | All |
 | `NEXT_PUBLIC_PINATA_JWT` | Your Pinata JWT | All |
 | `BASE_RPC_URL` | `https://sepolia.base.org` | All |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | Your WalletConnect project ID | All |
 | `NEXT_PUBLIC_PLATFORM_ADDRESS` | `0x0000...0002` | College only |
 | `NEXT_PUBLIC_PLATFORM_ADDRESS` | `0x0000...0003` | University only |
 
@@ -74,7 +76,7 @@ After each deploy:
 1. Visit the project URL (e.g., `https://factory.vercel.app`)
 2. Check browser console for errors
 3. Test wallet connection
-4. Verify RPC calls work (Alchemy Base Sepolia endpoint is configured in `packages/shared/src/chain.ts`)
+4. Verify WalletConnect session and RPC calls work
 
 ## Troubleshooting
 

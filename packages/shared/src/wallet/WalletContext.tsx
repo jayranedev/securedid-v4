@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { ethers, BrowserProvider } from "ethers";
-import { CHAIN_ID, connectWallet, switchToBaseSepolia } from "../chain";
+import { EthereumProvider } from "@walletconnect/ethereum-provider";
+import { CHAIN_ID, CHAIN_NAME, CHAIN_ID_HEX, DEFAULT_RPC_URL, RPC_PROXY_PATH, switchToBaseSepolia } from "../chain";
 
 interface WalletState {
   address: string | null;
@@ -15,6 +16,77 @@ interface WalletState {
 }
 
 const Ctx = createContext<WalletState | null>(null);
+const WALLETCONNECT_NAME = "SecureDID";
+const WALLETCONNECT_ICON = `${typeof window === "undefined" ? "" : window.location.origin}/favicon.ico`;
+
+type WalletConnectProvider = Awaited<ReturnType<typeof EthereumProvider.init>>;
+type InjectedEthereumProvider = ethers.Eip1193Provider & {
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+};
+
+let walletConnectProvider: WalletConnectProvider | null = null;
+let walletConnectListenersAttached = false;
+
+function getInjectedEthereum(): InjectedEthereumProvider | null {
+  if (typeof window === "undefined") return null;
+  const eth = (window as unknown as { ethereum?: InjectedEthereumProvider }).ethereum;
+  return eth ?? null;
+}
+
+function getWalletConnectProjectId(): string {
+  return process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+}
+
+function getWalletConnectRpcUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_RPC_URL;
+  return new URL(RPC_PROXY_PATH, window.location.origin).toString();
+}
+
+async function getWalletConnectProvider(): Promise<WalletConnectProvider> {
+  if (walletConnectProvider) return walletConnectProvider;
+
+  const projectId = getWalletConnectProjectId();
+  if (!projectId) {
+    throw new Error("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not configured");
+  }
+
+  walletConnectProvider = await EthereumProvider.init({
+    projectId,
+    chains: [CHAIN_ID],
+    showQrModal: true,
+    methods: ["eth_requestAccounts", "eth_accounts", "eth_chainId", "personal_sign", "eth_signTypedData_v4"],
+    events: ["accountsChanged", "chainChanged", "disconnect", "connect"],
+    metadata: {
+      name: WALLETCONNECT_NAME,
+      description: "SecureDID wallet login",
+      url: typeof window === "undefined" ? "https://securedid.local" : window.location.origin,
+      icons: [WALLETCONNECT_ICON || `${DEFAULT_RPC_URL}/favicon.ico`],
+    },
+    rpcMap: { [CHAIN_ID]: getWalletConnectRpcUrl() },
+  });
+
+  if (!walletConnectListenersAttached) {
+    walletConnectProvider.on("accountsChanged", (accounts: string[]) => {
+      const account = accounts[0]?.toLowerCase() ?? null;
+      if (account) setWalletConnectState(account);
+      else clearWalletConnectState();
+    });
+    walletConnectProvider.on("chainChanged", (id: string) => {
+      setChainIdFromValue(id);
+    });
+    walletConnectProvider.on("disconnect", () => {
+      clearWalletConnectState();
+    });
+    walletConnectListenersAttached = true;
+  }
+
+  return walletConnectProvider;
+}
+
+let setWalletConnectState: (account: string) => void = () => undefined;
+let clearWalletConnectState: () => void = () => undefined;
+let setChainIdFromValue: (value: string) => void = () => undefined;
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress]       = useState<string | null>(null);
@@ -22,17 +94,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
+  setWalletConnectState = setAddress;
+  clearWalletConnectState = useCallback(() => {
+    setAddress(null);
+    setChainId(null);
+  }, []);
+  setChainIdFromValue = useCallback((value: string) => {
+    const parsed = value.startsWith("0x") ? parseInt(value, 16) : Number(value);
+    if (!Number.isNaN(parsed)) setChainId(parsed);
+  }, []);
+
   const connect = useCallback(async () => {
     setError(null);
     setConnecting(true);
     try {
-      const addr = await connectWallet();
-      setAddress(addr);
-      const eth = (window as unknown as { ethereum: ethers.Eip1193Provider }).ethereum;
-      const provider = new BrowserProvider(eth);
+      const wcProvider = await getWalletConnectProvider();
+      await wcProvider.connect();
+      const provider = new BrowserProvider(wcProvider as unknown as ethers.Eip1193Provider);
+      const accounts = await provider.send("eth_requestAccounts", []);
+      setAddress((accounts as string[])[0].toLowerCase());
       const net = await provider.getNetwork();
       setChainId(Number(net.chainId));
     } catch (e) {
+      const injected = getInjectedEthereum();
+      if (injected) {
+        try {
+          const provider = new BrowserProvider(injected);
+          await switchToBaseSepolia(provider);
+          const accounts = await provider.send("eth_requestAccounts", []);
+          setAddress((accounts as string[])[0].toLowerCase());
+          const net = await provider.getNetwork();
+          setChainId(Number(net.chainId));
+          return;
+        } catch (fallbackError) {
+          setError(fallbackError instanceof Error ? fallbackError.message : "Connection failed");
+          return;
+        }
+      }
       setError(e instanceof Error ? e.message : "Connection failed");
     } finally {
       setConnecting(false);
@@ -42,21 +140,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(() => {
     setAddress(null);
     setChainId(null);
+    void walletConnectProvider?.disconnect().catch(() => undefined);
   }, []);
 
   const getSigner = useCallback(async () => {
-    if (typeof window === "undefined" || !(window as unknown as { ethereum?: unknown }).ethereum) {
-      throw new Error("MetaMask not installed");
+    if (walletConnectProvider) {
+      const provider = new BrowserProvider(walletConnectProvider as unknown as ethers.Eip1193Provider);
+      await switchToBaseSepolia(provider);
+      return provider.getSigner();
     }
-    const eth = (window as unknown as { ethereum: ethers.Eip1193Provider }).ethereum;
-    const provider = new BrowserProvider(eth);
+
+    const injected = getInjectedEthereum();
+    if (!injected) {
+      throw new Error("No wallet provider available");
+    }
+    const provider = new BrowserProvider(injected);
     await switchToBaseSepolia(provider);
     return provider.getSigner();
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const eth = (window as unknown as { ethereum?: { on?: (e: string, f: (...a: unknown[]) => void) => void; removeListener?: (e: string, f: (...a: unknown[]) => void) => void } }).ethereum;
+    const eth = getInjectedEthereum();
     if (!eth?.on) return;
 
     const onAccounts = (accs: unknown) => {

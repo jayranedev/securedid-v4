@@ -8,5 +8,9 @@
     "ethers": "^6.16.0",
     "react": "^18",
     "react-dom": "^18"
+  },
+  "dependencies": {
+    "@reown/appkit": "^1.8.17-wc-circular-dependencies-fix.0",
+    "@walletconnect/ethereum-provider": "^2.23.9"
   }
 }
