@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-surface-0); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .card { border: 1px solid var(--border-subtle); border-radius: 8px; overflow: hidden; }
+  .sw { height: 56px; display: flex; align-items: center; justify-content: center; color: white; font: 600 13px var(--font-sans); }
+  .tint { height: 20px; }
+  .meta { padding: 8px 10px; }
+  .name { font: 600 12px var(--font-sans); color: var(--fg-1); }
+  .use { font: 400 10px var(--font-sans); color: var(--fg-3); margin-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
+</style></head><body>
+  <div class="grid">
+    <div class="card"><div class="sw" style="background:#059669">Success</div><div class="tint" style="background:#d1fae5"></div><div class="meta"><div class="name">Success</div><div class="use">Confirmed · granted</div></div></div>
+    <div class="card"><div class="sw" style="background:#d97706">Warning</div><div class="tint" style="background:#fef3c7"></div><div class="meta"><div class="name">Warning</div><div class="use">Expired · wrong network</div></div></div>
+    <div class="card"><div class="sw" style="background:#dc2626">Danger</div><div class="tint" style="background:#fee2e2"></div><div class="meta"><div class="name">Danger</div><div class="use">Revoked · reverted</div></div></div>
+    <div class="card"><div class="sw" style="background:#4f46e5">Info</div><div class="tint" style="background:#e0e7ff"></div><div class="meta"><div class="name">Info</div><div class="use">Pending · broadcasting</div></div></div>
+  </div>
+</body></html>

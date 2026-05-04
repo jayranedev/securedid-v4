@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-app="university"><head>
+<meta charset="utf-8"><title>University · SecureDID</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../_shared.css">
+<style>
+  .transcript { width: 100%; border-collapse: collapse; }
+  .transcript th, .transcript td { padding: 14px 20px; text-align: left; font: 400 14px var(--font-sans); border-bottom: 1px solid var(--border-subtle); }
+  .transcript th { font: 600 11px var(--font-sans); color: var(--fg-3); letter-spacing: 0.08em; text-transform: uppercase; background: var(--bg-surface-1); }
+  .transcript tr:last-child td { border-bottom: none; }
+  .transcript .grade { font: 600 14px var(--font-mono); color: var(--fg-1); }
+  .cgpa { padding: 24px; text-align: center; background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%); border-radius: 14px; margin-bottom: 20px; }
+  .cgpa__v { font: 400 72px var(--font-display); color: var(--university); line-height: 1; letter-spacing: -0.02em; }
+  .cgpa__l { font: 500 12px var(--font-sans); color: var(--university-700); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
+</style>
+</head><body>
+<div class="app">
+  <nav class="nav">
+    <div class="nav__left">
+      <a class="nav__brand" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z" fill="currentColor" fill-opacity="0.1"/><rect x="10.5" y="12.5" width="6.5" height="5" rx="2.5" fill="none"/><rect x="15" y="14.5" width="6.5" height="5" rx="2.5" fill="none"/></svg>Secure<em>DID</em></a>
+      <div class="nav__app-name">MIT University Portal</div>
+    </div>
+    <div class="nav__right">
+      <button class="connect"><span class="connect__dot"></span><span class="connect__addr">0x8Afb…D21c</span><span class="connect__chain">Base Sepolia</span></button>
+    </div>
+  </nav>
+
+  <main class="page" style="max-width: 880px;">
+    <div class="page__header">
+      <div class="page__eyebrow">Verified with SecureDID</div>
+      <h1 class="page__title">Your transcript</h1>
+      <p class="page__sub">This page checks your DID on-chain before rendering. No username, no password.</p>
+    </div>
+
+    <div class="cgpa">
+      <div class="cgpa__v">8.94</div>
+      <div class="cgpa__l">Cumulative GPA · 108 credits</div>
+    </div>
+
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Course grades</div>
+          <div class="card__sub">Fall 2025 · MIT Computer Science</div>
+        </div>
+        <button class="btn btn--secondary btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export PDF</button>
+      </div>
+      <table class="transcript">
+        <thead><tr><th>Code</th><th>Course</th><th>Credits</th><th style="text-align:right;">Grade</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">6.1010</td><td>Fundamentals of Programming</td><td>4</td><td style="text-align:right;" class="grade">A</td></tr>
+          <tr><td class="mono">6.1020</td><td>Software Construction</td><td>4</td><td style="text-align:right;" class="grade">A-</td></tr>
+          <tr><td class="mono">6.1200</td><td>Mathematics for CS</td><td>4</td><td style="text-align:right;" class="grade">A</td></tr>
+          <tr><td class="mono">6.3900</td><td>Intro to Machine Learning</td><td>4</td><td style="text-align:right;" class="grade">B+</td></tr>
+          <tr><td class="mono">18.06</td><td>Linear Algebra</td><td>4</td><td style="text-align:right;" class="grade">A</td></tr>
+          <tr><td class="mono">21H.104</td><td>History of Science</td><td>3</td><td style="text-align:right;" class="grade">A-</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert--info" style="margin-top:20px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+      <div><div class="alert__title">Verified via on-chain access grant</div>This page rendered because <span class="mono" style="font-size:12.5px;">hasAccess(you, 0xA1B2…C3D4)</span> returned true. Your grant expires in 42 minutes.</div>
+    </div>
+  </main>
+</div>
+</body></html>

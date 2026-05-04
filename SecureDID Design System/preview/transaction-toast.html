@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-surface-0); display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .toast { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; border: 1px solid; background: white; box-shadow: 0 4px 12px rgba(15,23,42,0.08); font: 500 13px var(--font-sans); min-width: 380px; }
+  .icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .body { flex: 1; }
+  .title { font-weight: 600; color: var(--fg-1); }
+  .sub { font: 400 12px var(--font-mono); color: var(--fg-3); margin-top: 2px; }
+  .pending { border-color: #c7d2fe; background: #eef2ff; }
+  .pending .icon { color: #4f46e5; animation: spin 0.9s linear infinite; }
+  .confirmed { border-color: #a7f3d0; background: #ecfdf5; }
+  .confirmed .icon { color: #059669; }
+  .reverted { border-color: #fecaca; background: #fef2f2; }
+  .reverted .icon { color: #dc2626; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style></head><body>
+  <div class="toast pending">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    <div class="body"><div class="title">Sending to network…</div><div class="sub">0xa1b2c3…d4e5</div></div>
+  </div>
+  <div class="toast confirmed">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <div class="body"><div class="title">Confirmed in block 1,238,412</div><div class="sub">Open in Blockscout ↗</div></div>
+  </div>
+  <div class="toast reverted">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+    <div class="body"><div class="title">Not pre-authorized for this registry</div><div class="sub">error 0xa1b2…</div></div>
+  </div>
+</body></html>

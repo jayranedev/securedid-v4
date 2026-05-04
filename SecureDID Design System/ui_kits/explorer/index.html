@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" data-app="explorer"><head>
+<meta charset="utf-8"><title>Explorer · SecureDID</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../_shared.css">
+<style>
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border-default); background: var(--bg-surface-0); font: 500 12px var(--font-sans); color: var(--fg-2); cursor: pointer; }
+  .chip.active { background: var(--accent-50); border-color: var(--accent); color: var(--accent-700); }
+  .feed-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); }
+  .feed-row:last-child { border-bottom: none; }
+  .feed-type { padding: 3px 8px; border-radius: 4px; font: 600 10.5px var(--font-sans); letter-spacing: 0.06em; text-transform: uppercase; flex-shrink: 0; }
+  .t-did { background: #ecfdf5; color: #047857; }
+  .t-reg { background: #eef2ff; color: #4338ca; }
+  .t-rev { background: #fef2f2; color: #b91c1c; }
+  .t-prop { background: #fff7ed; color: #c2410c; }
+  .t-exec { background: #f0f9ff; color: #0369a1; }
+  .t-grant { background: #f5f3ff; color: #6d28d9; }
+  .inst-row { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); }
+  .inst-row:last-child { border-bottom: none; }
+  .inst-name { flex: 1; }
+  .inst-mini { display: flex; gap: 20px; }
+  .mini-stat { text-align: center; }
+  .mini-stat__v { font: 500 14px var(--font-sans); color: var(--fg-1); }
+  .mini-stat__l { font: 400 10px var(--font-sans); color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+</style>
+</head><body>
+<div class="app">
+  <nav class="nav">
+    <div class="nav__left">
+      <a class="nav__brand" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z" fill="currentColor" fill-opacity="0.1"/><rect x="10.5" y="12.5" width="6.5" height="5" rx="2.5" fill="none"/><rect x="15" y="14.5" width="6.5" height="5" rx="2.5" fill="none"/></svg>Secure<em>DID</em></a>
+      <div class="nav__app-name">Explorer</div>
+    </div>
+    <div class="nav__right">
+      <div style="position:relative;"><input class="input" placeholder="Search registry, address, tx…" style="width:320px; padding-left:38px;"/><svg style="position:absolute; left:12px; top:11px; color: var(--fg-3);" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="page__header">
+      <div class="page__eyebrow">Public dashboard</div>
+      <h1 class="page__title">SecureDID explorer</h1>
+      <p class="page__sub">A read-only view of every institution, student, and proposal on the network.</p>
+    </div>
+
+    <div class="stat-grid" style="margin-bottom: 32px;">
+      <div class="stat"><div class="stat__label">Institutions</div><div class="stat__value">24</div><div class="stat__sub">+3 this month</div></div>
+      <div class="stat"><div class="stat__label">Students</div><div class="stat__value">4,218</div><div class="stat__sub">+142 this week</div></div>
+      <div class="stat"><div class="stat__label">Proposals</div><div class="stat__value">871</div><div class="stat__sub">12 active</div></div>
+      <div class="stat"><div class="stat__label">Revocations</div><div class="stat__value">38</div><div class="stat__sub">0.9% of total</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom: 32px;">
+      <div class="card__head"><div class="card__title">Institutions</div><div class="mono" style="font-size:12px;">Factory · 0xFa70…01A · <a href="#" style="color: var(--accent);">Blockscout ↗</a></div></div>
+      <div class="inst-row">
+        <div class="inst-name"><div style="font-weight:500;">MIT · Computer Science</div><div class="mono" style="font-size:12px; color: var(--fg-3); margin-top:2px;">0xA1B2…C3D4 · deployed 14 Sep 2025</div></div>
+        <div class="inst-mini">
+          <div class="mini-stat"><div class="mini-stat__v">412</div><div class="mini-stat__l">Students</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">68</div><div class="mini-stat__l">Proposals</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">3</div><div class="mini-stat__l">Revoked</div></div>
+        </div>
+      </div>
+      <div class="inst-row">
+        <div class="inst-name"><div style="font-weight:500;">Stanford · Electrical Engineering</div><div class="mono" style="font-size:12px; color: var(--fg-3); margin-top:2px;">0xB2C3…D4E5 · deployed 22 Aug 2025</div></div>
+        <div class="inst-mini">
+          <div class="mini-stat"><div class="mini-stat__v">289</div><div class="mini-stat__l">Students</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">42</div><div class="mini-stat__l">Proposals</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">1</div><div class="mini-stat__l">Revoked</div></div>
+        </div>
+      </div>
+      <div class="inst-row">
+        <div class="inst-name"><div style="font-weight:500;">Berkeley · Physics</div><div class="mono" style="font-size:12px; color: var(--fg-3); margin-top:2px;">0xC3D4…E5F6 · deployed 2 Aug 2025</div></div>
+        <div class="inst-mini">
+          <div class="mini-stat"><div class="mini-stat__v">156</div><div class="mini-stat__l">Students</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">31</div><div class="mini-stat__l">Proposals</div></div>
+          <div class="mini-stat"><div class="mini-stat__v">0</div><div class="mini-stat__l">Revoked</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__head"><div><div class="card__title">Event feed</div><div class="card__sub">All registries · newest first</div></div></div>
+      <div style="padding: 16px 20px;">
+        <div class="chips">
+          <span class="chip active">All</span>
+          <span class="chip">DID issued</span>
+          <span class="chip">Registered</span>
+          <span class="chip">Revoked</span>
+          <span class="chip">Proposals</span>
+          <span class="chip">Access grants</span>
+        </div>
+      </div>
+      <div class="feed-row"><span class="feed-type t-did">DID issued</span><div style="flex:1;"><div>Credential issued to <span class="mono" style="font-size:12.5px;">0x412c…77aa</span> at <b>MIT CS</b></div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,412 · 2 min ago</div></div><a class="btn btn--ghost btn--sm" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>Tx</a></div>
+      <div class="feed-row"><span class="feed-type t-exec">Proposal exec</span><div style="flex:1;"><div>Enrollment proposal #128 executed at <b>Stanford EE</b></div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,401 · 8 min ago</div></div><a class="btn btn--ghost btn--sm" href="#">Tx</a></div>
+      <div class="feed-row"><span class="feed-type t-reg">Registered</span><div style="flex:1;"><div><span class="mono" style="font-size:12.5px;">0x6b8f…3301</span> registered at <b>MIT CS</b></div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,389 · 14 min ago</div></div><a class="btn btn--ghost btn--sm" href="#">Tx</a></div>
+      <div class="feed-row"><span class="feed-type t-grant">Access grant</span><div style="flex:1;"><div>Access granted to <span class="mono" style="font-size:12.5px;">0xA1B2…C3D4</span> (University portal)</div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,351 · 23 min ago</div></div><a class="btn btn--ghost btn--sm" href="#">Tx</a></div>
+      <div class="feed-row"><span class="feed-type t-rev">Revoked</span><div style="flex:1;"><div>Credential revoked at <b>Berkeley Physics</b> · reason: withdrew</div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,202 · 1h ago</div></div><a class="btn btn--ghost btn--sm" href="#">Tx</a></div>
+      <div class="feed-row"><span class="feed-type t-prop">Proposal</span><div style="flex:1;"><div>New revocation proposal at <b>MIT CS</b></div><div class="mono" style="font-size:11.5px; color: var(--fg-3);">block 1,238,099 · 2h ago</div></div><a class="btn btn--ghost btn--sm" href="#">Tx</a></div>
+    </div>
+  </main>
+</div>
+</body></html>

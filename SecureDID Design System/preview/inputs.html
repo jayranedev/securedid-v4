@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-surface-0); display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .label { font: 500 12px var(--font-sans); color: var(--fg-1); }
+  .input { height: 40px; padding: 0 14px; border: 1px solid var(--border-default); border-radius: 6px; font: 400 14px var(--font-sans); background: white; color: var(--fg-1); }
+  .input.focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); outline: none; }
+  .input.error { border-color: #dc2626; }
+  .input.mono { font-family: var(--font-mono); font-size: 13px; }
+  .help { font: 400 12px var(--font-sans); color: var(--fg-3); }
+  .err { font: 400 12px var(--font-sans); color: #dc2626; }
+</style></head><body>
+  <div class="field">
+    <div class="label">Institution name</div>
+    <input class="input" value="MIT Computer Science" />
+    <div class="help">Must be unique on-chain.</div>
+  </div>
+  <div class="field">
+    <div class="label">Panelist 1 address</div>
+    <input class="input focus mono" value="0x8Afb3b1aB34A…D21c" />
+    <div class="help">Connected wallet · <a href="#" style="color:#4f46e5;text-decoration:none;">Use self</a></div>
+  </div>
+  <div class="field">
+    <div class="label">Panelist 2 address</div>
+    <input class="input error mono" value="0xC0ffee…" />
+    <div class="err">Duplicate of panelist 1.</div>
+  </div>
+  <div class="field">
+    <div class="label">Secret</div>
+    <input class="input" type="password" value="••••••••••••" />
+    <div class="help">Shared with you offline by your department.</div>
+  </div>
+</body></html>

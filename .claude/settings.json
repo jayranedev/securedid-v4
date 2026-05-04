@@ -14,7 +14,27 @@
       "Bash(powershell -command \"Get-Process -Id 21276 | Select-Object Name, CPU\")",
       "Bash(taskkill //F //PID 21276)",
       "Bash(npm run *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/college-portal)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/college-portal)",
+      "Bash(powershell -Command \"Get-Process python* | Select-Object Name, Id | Format-Table -AutoSize\")",
+      "Bash(powershell -Command 'Get-Process | Where-Object { $_.Name -match '\\\\''python|uvicorn|venv'\\\\'' } | Select-Object Name, Id | Format-Table -AutoSize')",
+      "Bash(powershell -Command '& { $procs = Get-Process; $procs | Where-Object { $_.Name -eq '\\\\''python'\\\\'' -or $_.Name -eq '\\\\''python3'\\\\'' } | Format-Table Name,Id -AutoSize }')",
+      "Bash(powershell -Command \"handle.exe 'BE-Proj-26\\\\\\\\backend' 2>null\")",
+      "Bash(powershell -Command '& { $result = & handle.exe '\\\\''BE-Proj-26'\\\\'' 2>$null; $result } ')",
+      "Bash(powershell -Command ' *)",
+      "Bash(powershell -Command \"Remove-Item -Recurse -Force 'C:\\\\Desktop\\\\BE-Proj-26\\\\backend' -ErrorAction SilentlyContinue; if \\(Test-Path 'C:\\\\Desktop\\\\BE-Proj-26\\\\backend'\\) { 'still exists' } else { 'deleted' }\")",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Desktop\\\\BE-Proj-26\\\\backend' -ErrorAction SilentlyContinue | Select-Object Name | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Test-Path 'C:\\\\Desktop\\\\BE-Proj-26\\\\backend'\")",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(npx hardhat *)",
+      "Bash(node -e \"require\\('dotenv'\\).config\\(\\); const k = process.env.DEPLOYER_PRIVATE_KEY; console.log\\('len:', k ? k.length : 'missing', 'starts0x:', k ? k.startsWith\\('0x'\\) : 'N/A'\\);\")",
+      "Bash(xxd)",
+      "Bash(npx next *)",
+      "Bash(findstr \":300[0-5] \")",
+      "Bash(findstr LISTENING)",
+      "Bash(npx --prefix apps/factory tsc --noEmit -p apps/factory/tsconfig.json)",
+      "Bash(npx --prefix apps/panelist tsc --noEmit -p apps/panelist/tsconfig.json)",
+      "WebSearch"
     ]
   }
 }

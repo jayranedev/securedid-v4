@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" data-app="student"><head>
+<meta charset="utf-8"><title>Student · SecureDID</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../_shared.css">
+<style>
+  .did {
+    border-radius: 20px; padding: 24px 28px;
+    background: linear-gradient(135deg, #064e3b 0%, #059669 60%, #10b981 100%);
+    color: white; position: relative; box-shadow: 0 12px 32px rgba(5,150,105,0.2);
+    min-height: 200px; display: flex; flex-direction: column; justify-content: space-between;
+    overflow: hidden;
+  }
+  .did::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 85% 15%, rgba(255,255,255,0.18), transparent 40%); pointer-events: none; }
+  .did__top { display: flex; justify-content: space-between; position: relative; z-index: 1; }
+  .did__inst { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; font-weight: 600; }
+  .did__name { font: 600 22px var(--font-sans); margin-top: 6px; letter-spacing:-0.01em; }
+  .did__did { font-family: var(--font-mono); font-size: 13px; opacity: 0.9; position: relative; z-index: 1; }
+  .did__stats { display: flex; gap: 28px; position: relative; z-index: 1; }
+  .did__stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+  .did__stat-val { font-family: var(--font-mono); font-size: 13px; margin-top: 2px; }
+  .did__seal { width: 32px; height: 32px; opacity: 0.9; }
+  .grants { display: flex; flex-direction: column; gap: 0; }
+  .grant-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--border-subtle); }
+  .grant-row:last-child { border-bottom: none; }
+  .grant-countdown { font: 500 13px var(--font-mono); color: var(--fg-1); }
+  .jsonview { background: var(--slate-50); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 14px; font: 400 12.5px var(--font-mono); color: var(--fg-1); white-space: pre; max-height: 200px; overflow: auto; }
+</style>
+</head><body>
+<div class="app">
+  <nav class="nav">
+    <div class="nav__left">
+      <a class="nav__brand" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z" fill="currentColor" fill-opacity="0.1"/><rect x="10.5" y="12.5" width="6.5" height="5" rx="2.5" fill="none"/><rect x="15" y="14.5" width="6.5" height="5" rx="2.5" fill="none"/></svg>Secure<em>DID</em></a>
+      <div class="nav__app-name">Student</div>
+    </div>
+    <div class="nav__right">
+      <button class="connect"><span class="connect__dot"></span><span class="connect__addr">0x8Afb…D21c</span><span class="connect__chain">Base Sepolia</span></button>
+    </div>
+  </nav>
+
+  <main class="page">
+    <div class="page__header">
+      <div class="page__eyebrow">MIT · Computer Science</div>
+      <h1 class="page__title">Your digital student ID</h1>
+      <p class="page__sub">Your credential is encrypted to your wallet and stored on IPFS. Only you can decrypt it.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr; gap: 20px; max-width: 720px;">
+
+      <!-- Hero DID card -->
+      <div class="did">
+        <div class="did__top">
+          <div>
+            <div class="did__inst">MIT · Computer Science</div>
+            <div class="did__name">Verified Student Credential</div>
+          </div>
+          <svg class="did__seal" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z"/><path d="m11 15 3.5 3.5L21 12"/></svg>
+        </div>
+        <div class="did__did">did:securedid:mit-cs:0x8Afb3b1aB34A…D21c</div>
+        <div class="did__stats">
+          <div><div class="did__stat-label">Revocation index</div><div class="did__stat-val">#1,247</div></div>
+          <div><div class="did__stat-label">IPFS address</div><div class="did__stat-val">bafybe…7q3m</div></div>
+          <div><div class="did__stat-label">Issued</div><div class="did__stat-val">14 Sep 2025</div></div>
+        </div>
+      </div>
+
+      <!-- Encrypted credential card -->
+      <div class="card card--pad">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <div style="font:600 15px var(--font-sans);">Encrypted credential</div>
+            <div style="font:400 13px var(--font-sans); color: var(--fg-3); margin-top: 4px;">Encrypted to your MetaMask key · only your wallet can decrypt.</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn--secondary btn--sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>Open on IPFS</button>
+            <button class="btn btn--primary btn--sm">Fetch &amp; decrypt</button>
+          </div>
+        </div>
+        <div class="jsonview">{
+  "did": "did:securedid:mit-cs:0x8Afb3b1aB34A…D21c",
+  "name": "Amelia Park",
+  "rollNumber": "CS-2025-0418",
+  "department": "Computer Science",
+  "year": 3,
+  "email": "amelia.park@mit.edu",
+  "issuedAt": "2025-09-14T10:22:00Z"
+}</div>
+      </div>
+
+      <!-- Access grants -->
+      <div class="card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Access grants</div>
+            <div class="card__sub">Give platforms temporary access to verify your credential. Revoke anytime.</div>
+          </div>
+        </div>
+        <div style="padding: 16px 24px 20px;">
+          <div style="display:flex; gap: 10px; margin-bottom: 16px;">
+            <input class="input input--mono" placeholder="0x… platform address" style="flex:1;" />
+            <input class="input" value="60 minutes" style="width: 140px;" />
+            <button class="btn btn--primary">Grant access</button>
+          </div>
+          <div class="grants">
+            <div class="grant-row">
+              <div style="flex:1;"><div style="font-weight:500;">MIT University Portal</div><div class="mono" style="font-size:12px; margin-top:2px;">0xA1B2…C3D4</div></div>
+              <div class="grant-countdown">42:14 left</div>
+              <button class="btn btn--ghost btn--sm">Revoke</button>
+            </div>
+            <div class="grant-row">
+              <div style="flex:1;"><div style="font-weight:500;">MIT College Attendance</div><div class="mono" style="font-size:12px; margin-top:2px;">0xB2C3…D4E5</div></div>
+              <div class="grant-countdown">8:22 left</div>
+              <button class="btn btn--ghost btn--sm">Revoke</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body></html>

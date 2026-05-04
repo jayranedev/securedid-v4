@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--bg-surface-0); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 6px; font: 500 13px var(--font-sans); border: 1px solid transparent; cursor: pointer; }
+  .primary { background: #4f46e5; color: white; }
+  .secondary { background: white; color: var(--fg-1); border-color: var(--border-default); }
+  .danger { background: #dc2626; color: white; }
+  .ghost { background: transparent; color: var(--fg-1); }
+  .sm { height: 28px; padding: 0 10px; font-size: 12px; }
+  .lg { height: 44px; padding: 0 20px; font-size: 14px; }
+  .loading { background: #4338ca; color: white; opacity: 0.9; position: relative; padding-left: 36px; }
+  .loading::before { content: ''; position: absolute; left: 14px; top: 50%; margin-top: -7px; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .disabled { opacity: 0.4; cursor: not-allowed; }
+</style></head><body>
+  <button class="btn primary">Deploy registry</button>
+  <button class="btn secondary">Cancel</button>
+  <button class="btn danger">Revoke</button>
+  <button class="btn ghost">Open explorer</button>
+  <button class="btn primary loading">Broadcasting…</button>
+  <button class="btn primary disabled">Connected</button>
+  <button class="btn secondary sm">Copy</button>
+  <button class="btn primary lg">Sign in with wallet</button>
+</body></html>

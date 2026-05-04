@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 28px; background: var(--slate-50); display: flex; gap: 28px; }
+  .card { width: 160px; height: 90px; background: white; border-radius: 12px; padding: 16px; border: 1px solid var(--border-subtle); }
+  .flat { border: 1px solid var(--border-default); box-shadow: none; }
+  .raised { box-shadow: var(--shadow-sm); }
+  .lifted { box-shadow: var(--shadow-md); }
+  .modal { box-shadow: var(--shadow-lg); }
+  .name { font: 600 12px var(--font-sans); color: var(--fg-1); }
+  .val { font: 400 11px var(--font-mono); color: var(--fg-3); margin-top: 4px; }
+</style></head><body>
+  <div class="card flat"><div class="name">Flat</div><div class="val">border only</div></div>
+  <div class="card raised"><div class="name">Raised</div><div class="val">0 1 2 / .04</div></div>
+  <div class="card lifted"><div class="name">Hover</div><div class="val">0 4 12 / .06</div></div>
+  <div class="card modal"><div class="name">Modal</div><div class="val">0 12 32 / .10</div></div>
+</body></html>

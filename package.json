@@ -1,0 +1,17 @@
+{
+  "name": "securedid-monorepo",
+  "version": "4.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:factory":    "npm run dev --workspace=@securedid/factory",
+    "dev:panelist":   "npm run dev --workspace=@securedid/panelist",
+    "dev:student":    "npm run dev --workspace=@securedid/student",
+    "dev:university": "npm run dev --workspace=@securedid/university",
+    "dev:college":    "npm run dev --workspace=@securedid/college",
+    "dev:explorer":   "npm run dev --workspace=@securedid/explorer"
+  }
+}

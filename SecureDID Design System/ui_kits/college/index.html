@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-app="college"><head>
+<meta charset="utf-8"><title>College · SecureDID</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../_shared.css">
+<style>
+  .att { width: 100%; border-collapse: collapse; }
+  .att th, .att td { padding: 14px 20px; text-align: left; font: 400 14px var(--font-sans); border-bottom: 1px solid var(--border-subtle); }
+  .att th { font: 600 11px var(--font-sans); color: var(--fg-3); letter-spacing: 0.08em; text-transform: uppercase; background: var(--bg-surface-1); }
+  .att tr:last-child td { border-bottom: none; }
+  .att .pct { font: 600 14px var(--font-mono); color: var(--fg-1); }
+  .att .low { color: var(--danger); }
+  .overall { padding: 24px; text-align: center; background: linear-gradient(135deg, #ffedd5 0%, #fff7ed 100%); border-radius: 14px; margin-bottom: 20px; }
+  .overall__v { font: 400 72px var(--font-display); color: var(--college); line-height: 1; letter-spacing: -0.02em; }
+  .overall__l { font: 500 12px var(--font-sans); color: var(--college-700); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; }
+  .siwe { background: var(--slate-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 16px 20px; margin-top: 12px; }
+  .siwe__row { display: flex; gap: 12px; padding: 6px 0; font: 400 13px var(--font-sans); }
+  .siwe__k { width: 100px; font-weight: 500; color: var(--fg-3); letter-spacing: 0.04em; text-transform: uppercase; font-size: 11px; }
+  .siwe__v { color: var(--fg-1); font-family: var(--font-mono); font-size: 12.5px; }
+</style>
+</head><body>
+<div class="app">
+  <nav class="nav">
+    <div class="nav__left">
+      <a class="nav__brand" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z" fill="currentColor" fill-opacity="0.1"/><rect x="10.5" y="12.5" width="6.5" height="5" rx="2.5" fill="none"/><rect x="15" y="14.5" width="6.5" height="5" rx="2.5" fill="none"/></svg>Secure<em>DID</em></a>
+      <div class="nav__app-name">MIT Attendance Portal</div>
+    </div>
+    <div class="nav__right">
+      <button class="connect"><span class="connect__dot"></span><span class="connect__addr">0x8Afb…D21c</span><span class="connect__chain">Base Sepolia</span></button>
+    </div>
+  </nav>
+
+  <main class="page" style="max-width: 880px;">
+    <div class="page__header">
+      <div class="page__eyebrow">Verified with SecureDID + SIWE</div>
+      <h1 class="page__title">Your attendance</h1>
+      <p class="page__sub">After your on-chain access grant, we asked your wallet to sign a short, free message to prove this is still you.</p>
+    </div>
+
+    <div class="overall">
+      <div class="overall__v">81%</div>
+      <div class="overall__l">Overall · Fall 2025 · 112 of 138 classes</div>
+    </div>
+
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Subject-wise attendance</div>
+          <div class="card__sub">Below 75% is flagged. Talk to the registrar if you need to regularize.</div>
+        </div>
+        <span class="pill pill--revoked" style="background:#fee2e2; color:#b91c1c;">1 subject low</span>
+      </div>
+      <table class="att">
+        <thead><tr><th>Subject</th><th>Present</th><th>Total</th><th style="text-align:right;">Percentage</th></tr></thead>
+        <tbody>
+          <tr><td>Fundamentals of Programming</td><td>24</td><td>28</td><td style="text-align:right;" class="pct">85.7%</td></tr>
+          <tr><td>Software Construction</td><td>22</td><td>25</td><td style="text-align:right;" class="pct">88.0%</td></tr>
+          <tr><td>Mathematics for CS</td><td>20</td><td>28</td><td style="text-align:right;" class="pct low">71.4%</td></tr>
+          <tr><td>Intro to Machine Learning</td><td>24</td><td>28</td><td style="text-align:right;" class="pct">85.7%</td></tr>
+          <tr><td>Linear Algebra</td><td>22</td><td>29</td><td style="text-align:right;" class="pct">75.8%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details style="margin-top:20px;">
+      <summary style="font: 500 13px var(--font-sans); color: var(--fg-2); cursor: pointer; padding: 8px 0;">Show SIWE session</summary>
+      <div class="siwe">
+        <div class="siwe__row"><div class="siwe__k">Domain</div><div class="siwe__v">attendance.mit.edu</div></div>
+        <div class="siwe__row"><div class="siwe__k">URI</div><div class="siwe__v">https://attendance.mit.edu/</div></div>
+        <div class="siwe__row"><div class="siwe__k">Chain</div><div class="siwe__v">Base Sepolia (84532)</div></div>
+        <div class="siwe__row"><div class="siwe__k">Nonce</div><div class="siwe__v">9k2Hf8Lq3X</div></div>
+        <div class="siwe__row"><div class="siwe__k">Issued</div><div class="siwe__v">2026-04-19T14:22:18Z</div></div>
+      </div>
+    </details>
+  </main>
+</div>
+</body></html>

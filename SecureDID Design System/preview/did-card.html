@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-surface-0); display: flex; justify-content: center; }
+  .did {
+    width: 420px; height: 240px; border-radius: 20px; padding: 20px 22px;
+    background: linear-gradient(135deg, #064e3b 0%, #059669 60%, #10b981 100%);
+    color: white; position: relative; box-shadow: 0 12px 32px rgba(5, 150, 105, 0.25);
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-family: var(--font-sans);
+  }
+  .did::after {
+    content: ''; position: absolute; inset: 0; border-radius: 20px;
+    background: radial-gradient(circle at 85% 15%, rgba(255,255,255,0.18), transparent 40%);
+    pointer-events: none;
+  }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; }
+  .inst { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; font-weight: 600; }
+  .name { font-size: 22px; font-weight: 600; margin-top: 6px; letter-spacing: -0.01em; }
+  .seal { width: 28px; height: 28px; opacity: 0.9; }
+  .mid { font-family: var(--font-mono); font-size: 12px; opacity: 0.9; position: relative; z-index: 1; }
+  .bot { display: flex; gap: 18px; position: relative; z-index: 1; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; }
+  .stat-val { font-family: var(--font-mono); font-size: 13px; margin-top: 2px; opacity: 0.95; }
+</style></head><body>
+  <div class="did">
+    <div class="top">
+      <div>
+        <div class="inst">MIT · Computer Science</div>
+        <div class="name">Verified Student Credential</div>
+      </div>
+      <svg class="seal" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z"/><path d="m11 15 3.5 3.5L21 12"/></svg>
+    </div>
+    <div class="mid">did:securedid:mit-cs:0x8Afb3b…D21c</div>
+    <div class="bot">
+      <div><div class="stat-label">Rev index</div><div class="stat-val">#1,247</div></div>
+      <div><div class="stat-label">CID</div><div class="stat-val">bafybe…7q3m</div></div>
+      <div><div class="stat-label">Issued</div><div class="stat-val">14 Sep 2025</div></div>
+    </div>
+  </div>
+</body></html>
