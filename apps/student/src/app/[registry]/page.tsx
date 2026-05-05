@@ -84,7 +84,7 @@ export default function Page() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           </div>
           <div className="sd-empty__title">Connect your wallet</div>
-          <p className="sd-empty__sub">Your wallet address is your identity. Connect MetaMask to proceed.</p>
+          <p className="sd-empty__sub">Your wallet address is your identity. Connect your wallet to proceed.</p>
         </div>
       )}
 
@@ -137,12 +137,12 @@ function RegisterForm({ registry, onDone }: { registry: string; onDone: () => Pr
 
       let encPubBytes = "0x";
       try {
-        setMsg("Requesting MetaMask encryption public key…");
+        setMsg("Requesting wallet encryption public key…");
         const encPubBase64 = await getMetaMaskEncryptionPubkey(address ?? "");
-        // MetaMask returns base64 — decode to raw 32 bytes before sending on-chain
+        // Wallet encryption methods return base64; decode to raw 32 bytes before sending on-chain.
         encPubBytes = ethers.hexlify(Uint8Array.from(atob(encPubBase64), (c) => c.charCodeAt(0)));
       } catch {
-        // eth_getEncryptionPublicKey is deprecated in MetaMask v11+ — skip encryption
+        // Not every RainbowKit wallet supports eth_getEncryptionPublicKey; skip encryption when unavailable.
       }
       const metaHash = metadataHash.trim() || ethers.keccak256(ethers.toUtf8Bytes(`${f.email}:${f.roll}`));
 
@@ -359,4 +359,3 @@ function Field({ label, value, onChange, placeholder, type = "text", hint }: {
     </div>
   );
 }
-

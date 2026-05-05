@@ -101,7 +101,6 @@ npm run dev   # http://localhost:3000
 | `CREDENTIAL_EXPIRY_DAYS` | VC validity, default 365 |
 | `ANOMALY_WINDOW_SECONDS` | Multi-IP detection window, default 300 |
 | `BASE_RPC_URL` | Base Sepolia RPC endpoint |
-| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect project ID for browser login |
 | `ANCHOR_WALLET_PRIVATE_KEY` | Wallet paying gas for DID anchoring |
 | `DID_REGISTRY_CONTRACT_ADDRESS` | Deployed DIDRegistry on Base Sepolia |
 | `PINATA_API_KEY` | Pinata API key for IPFS uploads (optional, leave empty to skip) |

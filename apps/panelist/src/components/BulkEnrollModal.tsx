@@ -248,7 +248,7 @@ export function BulkEnrollModal({ registry, onClose, onDone }: {
             </div>
 
             <div style={{ fontSize: 11, color: "var(--fg-4)", textAlign: "center" }}>
-              You&apos;ll sign {rows.length} MetaMask transaction{rows.length !== 1 ? "s" : ""} sequentially.
+              You&apos;ll sign {rows.length} wallet transaction{rows.length !== 1 ? "s" : ""} sequentially.
             </div>
           </div>
         )}

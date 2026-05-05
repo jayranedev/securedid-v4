@@ -2,6 +2,7 @@ export * from "./chain";
 export * from "./abi/factory";
 export * from "./abi/registry";
 export * from "./wallet/WalletContext";
+export * from "./wallet/RainbowKitProvider";
 export * from "./crypto";
 export * from "./registry";
 export * from "./vcCrypto";

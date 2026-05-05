@@ -30,10 +30,10 @@ export async function computeCommitment(f: EnrollmentFields): Promise<string> {
   );
 }
 
-/** Request MetaMask's built-in x25519 encryption public key for a given account. */
+/** Request a wallet-provided x25519 encryption public key for a given account. */
 export async function getMetaMaskEncryptionPubkey(address: string): Promise<string> {
   if (typeof window === "undefined" || !(window as unknown as { ethereum?: unknown }).ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error("Connected wallet does not expose an injected provider");
   }
   const eth = (window as unknown as { ethereum: { request: (a: unknown) => Promise<unknown> } }).ethereum;
   return eth.request({
@@ -42,10 +42,10 @@ export async function getMetaMaskEncryptionPubkey(address: string): Promise<stri
   }) as Promise<string>;
 }
 
-/** Decrypt data previously encrypted with MetaMask's x25519-xsalsa20-poly1305. */
+/** Decrypt data previously encrypted with a wallet's x25519-xsalsa20-poly1305 method. */
 export async function decryptWithMetaMask(ciphertextHex: string, address: string): Promise<string> {
   if (typeof window === "undefined" || !(window as unknown as { ethereum?: unknown }).ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error("Connected wallet does not expose an injected provider");
   }
   const eth = (window as unknown as { ethereum: { request: (a: unknown) => Promise<unknown> } }).ethereum;
   return eth.request({
@@ -54,7 +54,7 @@ export async function decryptWithMetaMask(ciphertextHex: string, address: string
   }) as Promise<string>;
 }
 
-/** Convert a hex-encoded 32-byte pubkey to the base64 form MetaMask stores internally. */
+/** Convert a hex-encoded 32-byte pubkey to the base64 form wallet encryption methods use. */
 export function pubkeyHexToBase64(hex: string): string {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
   const bytes = new Uint8Array(clean.match(/.{2}/g)!.map((b) => parseInt(b, 16)));

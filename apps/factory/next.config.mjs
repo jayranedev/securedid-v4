@@ -2,6 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@securedid/shared"],
+  webpack: (config) => {
+    // Stub out optional WalletConnect / MetaMask SDK deps that are not needed
+    // since we only use injected wallets (MetaMask, OKX, Coinbase) via RainbowKit
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      "pino-pretty": false,
+      "lokijs": false,
+      "encoding": false,
+    };
+    config.externals = [...(config.externals || []), "pino-pretty"];
+    return config;
+  },
   async headers() {
     return [
       {
@@ -20,7 +32,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https:",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https:",
-              "frame-src 'self'",
+              "frame-src 'self' https://verify.walletconnect.com https://verify.walletconnect.org",
             ].join("; "),
           },
         ],

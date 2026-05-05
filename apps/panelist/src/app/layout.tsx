@@ -2,7 +2,7 @@ import "./globals.css";
 import "@securedid/shared/globals.css";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, DM_Serif_Display } from "next/font/google";
-import { WalletProvider, ConnectButton, EthereumGuard } from "@securedid/shared";
+import { RainbowKitProvider, ConnectButton, EthereumGuard } from "@securedid/shared";
 import Link from "next/link";
 
 const inter   = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning data-app="panelist" className={`${inter.variable} ${mono.variable} ${display.variable}`}>
       <head><EthereumGuard /></head>
       <body style={{ minHeight: "100vh", background: "var(--bg-page)" }}>
-        <WalletProvider>
+        <RainbowKitProvider>
           <nav className="sd-nav">
             <div className="sd-nav__left">
               <Link href="/" className="sd-brand"><ShieldIcon />Secure<em>DID</em></Link>
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="sd-nav__right"><ConnectButton /></div>
           </nav>
           <main>{children}</main>
-        </WalletProvider>
+        </RainbowKitProvider>
       </body>
     </html>
   );

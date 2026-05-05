@@ -1,7 +1,7 @@
 "use client";
 
-import { useWallet, useIsCorrectChain } from "../wallet/WalletContext";
-import { shortAddr } from "../chain";
+import { ConnectButton as RainbowConnectButton } from "@rainbow-me/rainbowkit";
+import { CHAIN_ID, shortAddr } from "../chain";
 
 const ShieldIcon = () => (
   <svg width="18" height="18" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
@@ -12,42 +12,49 @@ const ShieldIcon = () => (
 );
 
 export function ConnectButton() {
-  const { address, connecting, connect, disconnect } = useWallet();
-  const correctChain = useIsCorrectChain();
-  const short = address ? shortAddr(address) : null;
-
-  if (!address) {
-    return (
-      <button
-        onClick={connect}
-        disabled={connecting}
-        className="sd-connect"
-        style={{ opacity: connecting ? 0.7 : 1 }}
-      >
-        <ShieldIcon />
-        <span>{connecting ? "Connecting…" : "Connect wallet"}</span>
-      </button>
-    );
-  }
-
-  if (!correctChain) {
-    return (
-      <button
-        onClick={connect}
-        className="sd-connect"
-        style={{ background: "var(--danger)" }}
-      >
-        <span className="sd-connect__dot" style={{ background: "#fca5a5" }} />
-        <span>Wrong network — switch</span>
-      </button>
-    );
-  }
-
   return (
-    <button onClick={disconnect} className="sd-connect">
-      <span className="sd-connect__dot" />
-      <span className="sd-connect__addr">{short}</span>
-      <span className="sd-connect__chain">Base Sepolia</span>
-    </button>
+    <RainbowConnectButton.Custom>
+      {({ account, chain, mounted, openAccountModal, openChainModal, openConnectModal }) => {
+        const ready = mounted;
+        const connected = ready && account && chain;
+
+        if (!connected) {
+          return (
+            <button
+              type="button"
+              onClick={openConnectModal}
+              className="sd-connect"
+              style={{ opacity: ready ? 1 : 0.7 }}
+              disabled={!ready}
+            >
+              <ShieldIcon />
+              <span>Connect wallet</span>
+            </button>
+          );
+        }
+
+        if (chain.unsupported || chain.id !== CHAIN_ID) {
+          return (
+            <button
+              type="button"
+              onClick={openChainModal}
+              className="sd-connect"
+              style={{ background: "var(--danger)" }}
+            >
+              <span className="sd-connect__dot" style={{ background: "#fca5a5" }} />
+              <span>Wrong network - switch</span>
+            </button>
+          );
+        }
+
+        return (
+          <button type="button" onClick={openAccountModal} className="sd-connect">
+            <span className="sd-connect__dot" />
+            <span className="sd-connect__addr">{shortAddr(account.address)}</span>
+            <span className="sd-connect__chain">{chain.name}</span>
+          </button>
+        );
+      }}
+    </RainbowConnectButton.Custom>
   );
 }

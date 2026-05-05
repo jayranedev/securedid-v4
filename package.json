@@ -7,18 +7,24 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:factory":    "npm run dev --workspace=@securedid/factory",
-    "dev:panelist":   "npm run dev --workspace=@securedid/panelist",
-    "dev:student":    "npm run dev --workspace=@securedid/student",
+    "dev:factory": "npm run dev --workspace=@securedid/factory",
+    "dev:panelist": "npm run dev --workspace=@securedid/panelist",
+    "dev:student": "npm run dev --workspace=@securedid/student",
     "dev:university": "npm run dev --workspace=@securedid/university",
-    "dev:college":    "npm run dev --workspace=@securedid/college",
-    "dev:explorer":   "npm run dev --workspace=@securedid/explorer",
-    "build:factory":    "npm run build --workspace=@securedid/factory",
-    "build:panelist":   "npm run build --workspace=@securedid/panelist",
-    "build:student":    "npm run build --workspace=@securedid/student",
+    "dev:college": "npm run dev --workspace=@securedid/college",
+    "dev:explorer": "npm run dev --workspace=@securedid/explorer",
+    "build:factory": "npm run build --workspace=@securedid/factory",
+    "build:panelist": "npm run build --workspace=@securedid/panelist",
+    "build:student": "npm run build --workspace=@securedid/student",
     "build:university": "npm run build --workspace=@securedid/university",
-    "build:college":    "npm run build --workspace=@securedid/college",
-    "build:explorer":   "npm run build --workspace=@securedid/explorer",
+    "build:college": "npm run build --workspace=@securedid/college",
+    "build:explorer": "npm run build --workspace=@securedid/explorer",
     "build": "npm run build --workspace=@securedid/shared && npm run build --workspace=@securedid/factory && npm run build --workspace=@securedid/panelist && npm run build --workspace=@securedid/student && npm run build --workspace=@securedid/university && npm run build --workspace=@securedid/college && npm run build --workspace=@securedid/explorer"
+  },
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.2.10",
+    "@tanstack/react-query": "^5.100.9",
+    "viem": "^2.48.8",
+    "wagmi": "^2.19.5"
   }
 }
