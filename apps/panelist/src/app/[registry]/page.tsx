@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ethers } from "ethers";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import {
   useWallet, AddressPill, getRegistryRead, getRegistryWrite,
   fetchAllProposals, decodeProposalData, proposalTypeLabel, ProposalType,
@@ -13,6 +15,156 @@ import { NewProposalModal } from "@/components/NewProposalModal";
 import { BulkEnrollModal } from "@/components/BulkEnrollModal";
 
 type Tab = "proposals" | "students" | "panelists";
+
+type RawRow = Record<string, unknown>;
+
+interface CommitmentRow {
+  commitment: string;
+  name?: string;
+  email?: string;
+  roll?: string;
+  department?: string;
+  year?: string;
+  secret?: string;
+}
+
+const COMMITMENT_HEADER_ALIASES: Record<string, keyof CommitmentRow> = {
+  commitment: "commitment",
+  commitmenthash: "commitment",
+  commithash: "commitment",
+  hash: "commitment",
+  email: "email",
+  mail: "email",
+  roll: "roll",
+  rollno: "roll",
+  rollnumber: "roll",
+  name: "name",
+  studentname: "name",
+  department: "department",
+  dept: "department",
+  year: "year",
+  batch: "year",
+  admissionyear: "year",
+  secret: "secret",
+};
+
+function normalizeHeaderKey(header: string): string {
+  return header.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeCommitment(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^[0-9a-fA-F]{64}$/.test(trimmed)) return `0x${trimmed.toLowerCase()}`;
+  return trimmed.toLowerCase();
+}
+
+function normalizeCommitmentRow(row: RawRow): CommitmentRow {
+  const out: CommitmentRow = { commitment: "" };
+  for (const [key, value] of Object.entries(row)) {
+    const mapped = COMMITMENT_HEADER_ALIASES[normalizeHeaderKey(key)];
+    if (!mapped) continue;
+    const text = typeof value === "string" ? value.trim() : String(value ?? "").trim();
+    if (!text) continue;
+    if (mapped === "commitment") out.commitment = text;
+    else if (mapped === "year") out.year = text;
+    else out[mapped] = text;
+  }
+  out.commitment = normalizeCommitment(out.commitment);
+  return out;
+}
+
+function parseCSV(source: string | File): Promise<RawRow[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse<RawRow>(source, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length) {
+          reject(new Error(results.errors[0].message));
+          return;
+        }
+        resolve(results.data);
+      },
+      error: (err) => reject(err),
+    });
+  });
+}
+
+function parseExcel(file: File): Promise<RawRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          resolve([]);
+          return;
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<RawRow>(sheet, { defval: "" });
+        resolve(json);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read the uploaded file"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseStudentFile(file: File): Promise<RawRow[]> {
+  const name = file.name.toLowerCase();
+  const type = file.type;
+  if (name.endsWith(".csv") || type === "text/csv") return parseCSV(file);
+  if (
+    name.endsWith(".xlsx") ||
+    name.endsWith(".xls") ||
+    type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    type === "application/vnd.ms-excel"
+  ) {
+    return parseExcel(file);
+  }
+  return Promise.reject(new Error("Unsupported file format. Upload CSV or Excel (.xlsx/.xls)."));
+}
+
+function buildCommitmentMap(rows: RawRow[]): {
+  map: Record<string, CommitmentRow>;
+  stats: { total: number; valid: number; invalid: number; duplicates: number };
+} {
+  const map: Record<string, CommitmentRow> = {};
+  let invalid = 0;
+  let duplicates = 0;
+  for (const row of rows) {
+    const normalized = normalizeCommitmentRow(row);
+    const commitment = normalized.commitment;
+    if (!commitment || !ethers.isHexString(commitment, 32)) {
+      invalid++;
+      continue;
+    }
+    if (map[commitment]) duplicates++;
+    map[commitment] = normalized;
+  }
+  const total = rows.length;
+  const valid = Object.keys(map).length;
+  return { map, stats: { total, valid, invalid, duplicates } };
+}
+
+function formatStudentSummary(row: CommitmentRow): string {
+  const parts = [row.name, row.roll, row.department, row.year].filter(Boolean);
+  return parts.join(" · ");
+}
+
+const detailLabelStyle = {
+  textTransform: "uppercase",
+  fontWeight: 600,
+  fontSize: 10,
+  letterSpacing: "0.05em",
+  color: "var(--fg-4)",
+  marginRight: 6,
+} as const;
 
 export default function RegistryPage() {
   const params = useParams<{ registry: string }>();
@@ -31,6 +183,11 @@ export default function RegistryPage() {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [busy, setBusy]             = useState<string | null>(null);
   const [msg, setMsg]               = useState<string | null>(null);
+  const [commitmentMap, setCommitmentMap] = useState<Record<string, CommitmentRow>>({});
+  const [commitmentStats, setCommitmentStats] = useState<{ total: number; valid: number; invalid: number; duplicates: number } | null>(null);
+  const [commitmentError, setCommitmentError] = useState<string | null>(null);
+  const [commitmentFileName, setCommitmentFileName] = useState<string | null>(null);
+  const commitmentInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     if (!registry) return;
@@ -45,7 +202,15 @@ export default function RegistryPage() {
       setPanelists(ps.map((p) => p.toLowerCase()));
       setThreshold(Number(thresh));
       if (address) setIsPanelist(await reg.isPanelist(address));
-      setProposals(proposalsList.sort((a, b) => Number(b.id - a.id)));
+      const now = Date.now();
+      const rank = (p: ProposalSummary) => (!p.executed && p.expiresAt * 1000 > now ? 0 : 1);
+      setProposals(
+        proposalsList.sort((a, b) => {
+          const rankDiff = rank(a) - rank(b);
+          if (rankDiff !== 0) return rankDiff;
+          return Number(b.id - a.id);
+        })
+      );
 
       const factoryAddr = process.env.NEXT_PUBLIC_FACTORY_ADDRESS;
       if (factoryAddr) {
@@ -83,6 +248,32 @@ export default function RegistryPage() {
 
   const activeProposals = proposals.filter((p) => !p.executed && p.expiresAt * 1000 > Date.now());
 
+  async function handleCommitmentFile(file: File) {
+    setCommitmentError(null);
+    setCommitmentFileName(file.name);
+    try {
+      const rows = await parseStudentFile(file);
+      const result = buildCommitmentMap(rows);
+      setCommitmentMap(result.map);
+      setCommitmentStats(result.stats);
+      if (result.stats.valid === 0) {
+        setCommitmentError("No valid commitments found in the uploaded file.");
+      }
+    } catch (err) {
+      setCommitmentError(err instanceof Error ? err.message : "Failed to parse the uploaded file.");
+      setCommitmentMap({});
+      setCommitmentStats(null);
+    }
+  }
+
+  function clearCommitmentFile() {
+    setCommitmentMap({});
+    setCommitmentStats(null);
+    setCommitmentError(null);
+    setCommitmentFileName(null);
+    if (commitmentInputRef.current) commitmentInputRef.current.value = "";
+  }
+
   return (
     <div className="sd-page">
       <Link href="/" className="sd-back">← Back to registries</Link>
@@ -110,6 +301,55 @@ export default function RegistryPage() {
         <div className="sd-alert sd-alert--info" style={{ marginBottom: 16, fontFamily: "var(--font-mono)", fontSize: 12 }}>{msg}</div>
       )}
 
+      {isPanelist && tab !== "panelists" && (
+        <div className="sd-card sd-card--pad" style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ font: "var(--fw-semibold) 14px/1 var(--font-sans)", color: "var(--fg-2)" }}>Commitment lookup file</div>
+              <div style={{ fontSize: 12, color: "var(--fg-4)", marginTop: 6 }}>
+                Upload a CSV or Excel file with commitments. Stored only for this session.
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={() => commitmentInputRef.current?.click()} className="sd-btn sd-btn--secondary">
+                Upload CSV/Excel
+              </button>
+              {commitmentFileName && (
+                <button type="button" onClick={clearCommitmentFile} className="sd-btn sd-btn--ghost">
+                  Clear
+                </button>
+              )}
+              <input
+                ref={commitmentInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleCommitmentFile(f); }}
+              />
+            </div>
+          </div>
+
+          {commitmentFileName && (
+            <div style={{ marginTop: 10, fontSize: 12, color: "var(--fg-3)" }}>
+              File: <span style={{ color: "var(--fg-2)" }}>{commitmentFileName}</span>
+            </div>
+          )}
+
+          {commitmentStats && (
+            <div style={{ marginTop: 8, fontSize: 12, color: "var(--fg-3)" }}>
+              Rows: {commitmentStats.total} · Valid: {commitmentStats.valid} · Invalid: {commitmentStats.invalid}
+              {commitmentStats.duplicates > 0 ? ` · Duplicates: ${commitmentStats.duplicates}` : ""}
+            </div>
+          )}
+
+          {commitmentError && (
+            <div className="sd-alert sd-alert--danger" style={{ marginTop: 10, fontSize: 12 }}>
+              {commitmentError}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="sd-tabs">
         {([
           ["proposals", `Proposals${activeProposals.length ? ` (${activeProposals.length})` : ""}`],
@@ -123,10 +363,10 @@ export default function RegistryPage() {
       {loading && <div style={{ color: "var(--fg-4)", fontSize: 13, paddingTop: 20 }}>Loading…</div>}
 
       {!loading && tab === "proposals" && (
-        <ProposalsList proposals={proposals} isPanelist={isPanelist} myAddr={address} threshold={threshold} onVote={vote} busy={busy} />
+        <ProposalsList proposals={proposals} isPanelist={isPanelist} myAddr={address} threshold={threshold} onVote={vote} busy={busy} commitmentMap={commitmentMap} />
       )}
       {!loading && tab === "students" && (
-        <PendingStudents registry={registry} isPanelist={isPanelist} threshold={threshold} onChange={refresh} deployedAt={deployedAt} institutionName={name} />
+        <PendingStudents registry={registry} isPanelist={isPanelist} threshold={threshold} onChange={refresh} deployedAt={deployedAt} institutionName={name} commitmentMap={commitmentMap} />
       )}
       {!loading && tab === "panelists" && (
         <PanelistList panelists={panelists} myAddr={address} threshold={threshold} />
@@ -153,10 +393,10 @@ export default function RegistryPage() {
   );
 }
 
-function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy }: {
+function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy, commitmentMap }: {
   proposals: ProposalSummary[]; isPanelist: boolean; myAddr: string | null;
   threshold: number;
-  onVote: (id: bigint) => void; busy: string | null;
+  onVote: (id: bigint) => void; busy: string | null; commitmentMap: Record<string, CommitmentRow>;
 }) {
   const { address } = useWallet();
   const [votesByProposal, setVotes] = useState<Record<string, boolean>>({});
@@ -192,6 +432,10 @@ function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy 
         const myVote  = votesByProposal[p.id.toString()];
         const statusCls = p.executed ? "sd-pill--executed" : expired ? "sd-pill--expired" : "sd-pill--active";
         const statusLabel = p.executed ? "Executed" : expired ? "Expired" : "Active";
+        const commitmentValue = p.pType === ProposalType.Enrollment
+          ? normalizeCommitment(String(decoded.commitment ?? ""))
+          : "";
+        const matchedRow = commitmentValue ? commitmentMap[commitmentValue] : undefined;
         return (
           <div key={p.id.toString()} className="sd-card sd-card--pad">
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
@@ -205,7 +449,22 @@ function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy 
 
                 <div style={{ marginTop: 10, fontSize: 12, color: "var(--fg-3)", fontFamily: "var(--font-mono)", display: "flex", flexDirection: "column", gap: 4 }}>
                   {p.pType === ProposalType.Enrollment && (
-                    <div>commitment: <span style={{ color: "var(--fg-1)" }}>{(decoded.commitment as string)?.slice(0, 22)}…</span></div>
+                    <>
+                      <div>commitment: <span style={{ color: "var(--fg-1)" }}>{(decoded.commitment as string)?.slice(0, 22)}…</span></div>
+                      {matchedRow ? (
+                        <div style={{ fontFamily: "var(--font-sans)", color: "var(--fg-2)", display: "grid", gap: 2 }}>
+                          {matchedRow.name && <div><span style={detailLabelStyle}>Name</span>{matchedRow.name}</div>}
+                          {matchedRow.roll && <div><span style={detailLabelStyle}>Roll</span>{matchedRow.roll}</div>}
+                          {matchedRow.department && <div><span style={detailLabelStyle}>Dept</span>{matchedRow.department}</div>}
+                          {matchedRow.year && <div><span style={detailLabelStyle}>Year</span>{matchedRow.year}</div>}
+                          {matchedRow.email && <div><span style={detailLabelStyle}>Email</span>{matchedRow.email}</div>}
+                        </div>
+                      ) : (
+                        <div style={{ fontFamily: "var(--font-sans)", color: "var(--fg-4)" }}>
+                          student: Not found in uploaded file
+                        </div>
+                      )}
+                    </>
                   )}
                   {p.pType === ProposalType.Revocation && (
                     <>
@@ -306,11 +565,12 @@ async function uploadVC(vcJson: string, student: string): Promise<string> {
   return "data:application/json;base64," + btoa(unescape(encodeURIComponent(vcJson)));
 }
 
-function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt, institutionName }: {
+function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt, institutionName, commitmentMap }: {
   registry: string; isPanelist: boolean; threshold: number; onChange: () => void; deployedAt?: number; institutionName: string;
+  commitmentMap: Record<string, CommitmentRow>;
 }) {
   const { getSigner } = useWallet();
-  const [pending, setPending] = useState<{ student: string; approvals: number }[]>([]);
+  const [pending, setPending] = useState<{ student: string; approvals: number; commitment: string }[]>([]);
   const [loading, setLoad]    = useState(true);
   const [busy, setBusy]       = useState<string | null>(null);
   const [cid, setCid]         = useState<Record<string, string>>({});
@@ -329,22 +589,48 @@ function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt
         const fromBlock = deployedAt ? { fromTimestamp: deployedAt } : undefined;
         const events = await queryFilterAll(reg, reg.filters.StudentRegistered(), fromBlock);
         const seen = new Set<string>();
-        const out: { student: string; approvals: number }[] = [];
+        const out: { student: string; approvals: number; commitment: string }[] = [];
         for (const e of events) {
           const ev = e as ethers.EventLog;
           const student = ((ev.args?.[0] ?? ev.args?.student) as string).toLowerCase();
+          const commitment = normalizeCommitment(String(ev.args?.[1] ?? ev.args?.commitment ?? ""));
           if (seen.has(student)) continue;
           seen.add(student);
           const isPending = await reg.pendingRegistration(student);
           if (isPending) {
             const n = await reg.approvalCount(student);
-            out.push({ student, approvals: Number(n) });
+            out.push({ student, approvals: Number(n), commitment });
           }
         }
         setPending(out);
       } finally { setLoad(false); }
     })();
   }, [registry, deployedAt]);
+
+  useEffect(() => {
+    if (!pending.length) return;
+    setDetails((prev) => {
+      let changed = false;
+      const next: Record<string, StudentDetails> = { ...prev };
+      for (const entry of pending) {
+        const row = commitmentMap[normalizeCommitment(entry.commitment)];
+        if (!row) continue;
+        const existing = next[entry.student] ?? { name: "", email: "", roll: "", department: "", year: "" };
+        const updated: StudentDetails = {
+          name: existing.name || row.name || "",
+          email: existing.email || row.email || "",
+          roll: existing.roll || row.roll || "",
+          department: existing.department || row.department || "",
+          year: existing.year || row.year || "",
+        };
+        if (!next[entry.student] || JSON.stringify(existing) !== JSON.stringify(updated)) {
+          next[entry.student] = updated;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [pending, commitmentMap]);
 
   async function issueVC(student: string) {
     setIssuing(student);
@@ -387,12 +673,32 @@ function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {pending.map(({ student, approvals }) => (
+      {pending.map(({ student, approvals, commitment }) => {
+        const matchedRow = commitmentMap[normalizeCommitment(commitment)];
+        return (
         <div key={student} className="sd-card sd-card--pad">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
             <div>
               <div style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--fg-2)", marginBottom: 8 }}>Pending student</div>
               <AddressPill address={student} />
+              {commitment && (
+                <div style={{ marginTop: 8, fontSize: 11, color: "var(--fg-4)", fontFamily: "var(--font-mono)" }}>
+                  commitment: <span style={{ color: "var(--fg-3)" }}>{commitment.slice(0, 18)}…</span>
+                </div>
+              )}
+              {matchedRow ? (
+                <div style={{ marginTop: 6, fontSize: 12, color: "var(--fg-2)", display: "grid", gap: 2 }}>
+                  {matchedRow.name && <div><span style={detailLabelStyle}>Name</span>{matchedRow.name}</div>}
+                  {matchedRow.roll && <div><span style={detailLabelStyle}>Roll</span>{matchedRow.roll}</div>}
+                  {matchedRow.department && <div><span style={detailLabelStyle}>Dept</span>{matchedRow.department}</div>}
+                  {matchedRow.year && <div><span style={detailLabelStyle}>Year</span>{matchedRow.year}</div>}
+                  {matchedRow.email && <div><span style={detailLabelStyle}>Email</span>{matchedRow.email}</div>}
+                </div>
+              ) : (
+                <div style={{ marginTop: 6, fontSize: 12, color: "var(--fg-4)" }}>
+                  student: Not found in uploaded file
+                </div>
+              )}
             </div>
             <div style={{ textAlign: "center" }}>
               <div style={{ font: "var(--fw-regular) 32px/1 var(--font-display)", color: "var(--fg-1)" }}>{approvals}</div>
@@ -407,6 +713,11 @@ function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt
                   <div style={{ fontSize: 12, color: "var(--accent-700, #3730a3)", fontWeight: 500 }}>
                     You are the final approver — fill student details, issue the VC, then approve.
                   </div>
+                  {matchedRow && (
+                    <div style={{ fontSize: 12, color: "var(--fg-3)" }}>
+                      Auto-filled from the uploaded commitment file.
+                    </div>
+                  )}
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {([
@@ -457,7 +768,8 @@ function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt
             </div>
           )}
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 }

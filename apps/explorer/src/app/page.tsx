@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AddressPill, getFactoryRead, getRegistryRead, explorerAddress, queryFilterAll } from "@securedid/shared";
+import { useRouter } from "next/navigation";
+import { ethers } from "ethers";
+import { AddressPill, getFactoryRead, getRegistryRead, explorerAddress, explorerTx, EXPLORER_URL, queryFilterAll } from "@securedid/shared";
 import { FACTORY_ADDRESS } from "@/lib/env";
 
 interface Stats {
@@ -20,6 +22,8 @@ export default function Home() {
   const [rows, setRows]    = useState<Stats[]>([]);
   const [loading, setLoad] = useState(true);
   const [error, setError]  = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     if (!FACTORY_ADDRESS) { setError("NEXT_PUBLIC_FACTORY_ADDRESS not configured"); setLoad(false); return; }
@@ -55,6 +59,35 @@ export default function Home() {
   const totalStudents  = rows.reduce((a, r) => a + r.studentCount, 0);
   const totalRevoked   = rows.reduce((a, r) => a + r.revocationCount, 0);
   const totalProposals = rows.reduce((a, r) => a + r.proposalCount, 0);
+  const rawSearch = search.trim();
+  const normalizedSearch = rawSearch.toLowerCase();
+  const isTxHash = /^0x[a-fA-F0-9]{64}$/.test(rawSearch);
+  const isBlockNumber = /^\d+$/.test(rawSearch);
+  const isAddress = rawSearch.length > 0 && ethers.isAddress(rawSearch);
+  const registryMatch = isAddress ? rows.find((r) => r.registry === normalizedSearch) : undefined;
+  const shouldFilterList = normalizedSearch.length > 0 && !isTxHash && !isBlockNumber && (!isAddress || !!registryMatch);
+  const filteredRows = shouldFilterList
+    ? rows.filter((r) => [r.name, r.website, r.registry, r.owner]
+      .some((v) => v.toLowerCase().includes(normalizedSearch)))
+    : rows;
+  const directTarget = isTxHash
+    ? { label: "Open transaction", href: explorerTx(rawSearch) }
+    : isBlockNumber
+      ? { label: `Open block ${rawSearch}`, href: `${EXPLORER_URL}/block/${rawSearch}` }
+      : isAddress
+        ? { label: "Open address", href: explorerAddress(rawSearch) }
+        : null;
+  const showNoResults = !loading && rows.length > 0 && filteredRows.length === 0 && normalizedSearch.length > 0 && !directTarget;
+
+  function openRegistry() {
+    if (!registryMatch) return;
+    router.push(`/${registryMatch.registry}`);
+  }
+
+  function openDirectTarget() {
+    if (!directTarget) return;
+    window.open(directTarget.href, "_blank", "noopener,noreferrer");
+  }
 
   return (
     <div className="sd-page">
@@ -73,6 +106,49 @@ export default function Home() {
       </div>
 
       {error && <div className="sd-alert sd-alert--danger" style={{ marginBottom: 24 }}>{error}</div>}
+
+      <div className="sd-card sd-card--pad" style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              if (registryMatch) openRegistry();
+              else if (directTarget) openDirectTarget();
+            }}
+            placeholder="Search by registry name, address, tx hash, block, website, or owner"
+            className="sd-input"
+            style={{ flex: 1, minWidth: 240 }}
+          />
+          {registryMatch && (
+            <button type="button" onClick={openRegistry} className="sd-btn sd-btn--primary">
+              Open registry
+            </button>
+          )}
+          {!registryMatch && directTarget && (
+            <button type="button" onClick={openDirectTarget} className="sd-btn sd-btn--primary">
+              {directTarget.label}
+            </button>
+          )}
+          {search && (
+            <button type="button" onClick={() => setSearch("")} className="sd-btn sd-btn--secondary">
+              Clear
+            </button>
+          )}
+        </div>
+        {normalizedSearch && rows.length > 0 && shouldFilterList && (
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--fg-4)" }}>
+            Showing {filteredRows.length} of {rows.length}
+          </div>
+        )}
+        {directTarget && !registryMatch && (
+          <div style={{ marginTop: 6, fontSize: 12, color: "var(--fg-4)" }}>
+            Press Enter to open this in the block explorer.
+          </div>
+        )}
+      </div>
 
       {!loading && rows.length > 0 && (
         <div className="sd-stat-grid" style={{ marginBottom: 32 }}>
@@ -111,9 +187,19 @@ export default function Home() {
         </div>
       )}
 
-      {!loading && rows.length > 0 && (
+      {showNoResults && (
+        <div className="sd-card sd-card--pad sd-empty">
+          <div className="sd-empty__illus">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 21l-4.3-4.3" /><circle cx="11" cy="11" r="7" /></svg>
+          </div>
+          <div className="sd-empty__title">No matches</div>
+          <p className="sd-empty__sub">Try a different name or registry address.</p>
+        </div>
+      )}
+
+      {!loading && filteredRows.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {rows.map((r) => (
+          {filteredRows.map((r) => (
             <Link key={r.registry} href={`/${r.registry}`} className="sd-card sd-card--pad" style={{ display: "block", textDecoration: "none", transition: "box-shadow var(--dur-fast) var(--ease-out)" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
                 <div style={{ minWidth: 0, flex: 1 }}>

@@ -142,7 +142,10 @@ function RegisterForm({ registry, onDone }: { registry: string; onDone: () => Pr
         // Wallet encryption methods return base64; decode to raw 32 bytes before sending on-chain.
         encPubBytes = ethers.hexlify(Uint8Array.from(atob(encPubBase64), (c) => c.charCodeAt(0)));
       } catch {
-        // Not every RainbowKit wallet supports eth_getEncryptionPublicKey; skip encryption when unavailable.
+        throw new Error("Wallet does not expose an encryption public key. Use MetaMask or a wallet that supports eth_getEncryptionPublicKey.");
+      }
+      if (!ethers.isHexString(encPubBytes, 32)) {
+        throw new Error("Bad encryption pubkey. Reconnect your wallet and try again.");
       }
       const metaHash = metadataHash.trim() || ethers.keccak256(ethers.toUtf8Bytes(`${f.email}:${f.roll}`));
 

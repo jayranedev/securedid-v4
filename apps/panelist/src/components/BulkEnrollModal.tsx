@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { useWallet, getRegistryWrite, computeCommitment, EnrollmentFields } from "@securedid/shared";
 
 interface Row extends EnrollmentFields {
@@ -11,6 +13,117 @@ interface Row extends EnrollmentFields {
 
 type Step = "upload" | "review" | "submit";
 
+type RawRow = Record<string, unknown>;
+type EnrollmentInput = Omit<EnrollmentFields, "secret">;
+
+const REQUIRED_COLUMNS: (keyof EnrollmentInput)[] = ["email", "roll", "name", "department", "year"];
+
+const HEADER_ALIASES: Record<string, keyof EnrollmentInput> = {
+  email: "email",
+  mail: "email",
+  roll: "roll",
+  rollno: "roll",
+  rollnumber: "roll",
+  name: "name",
+  studentname: "name",
+  department: "department",
+  dept: "department",
+  year: "year",
+  batch: "year",
+  admissionyear: "year",
+};
+
+function normalizeHeaderKey(header: string): string {
+  return header.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function mapHeader(header: string): keyof EnrollmentInput | null {
+  const normalized = normalizeHeaderKey(header);
+  return HEADER_ALIASES[normalized] ?? null;
+}
+
+function normalizeRow(row: RawRow): Partial<EnrollmentInput> {
+  const out: Partial<EnrollmentInput> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const mapped = mapHeader(key);
+    if (!mapped) continue;
+    const text = typeof value === "string" ? value.trim() : String(value ?? "").trim();
+    if (!text) continue;
+    if (mapped === "year") {
+      const year = Number(text);
+      if (Number.isFinite(year)) out.year = year;
+    } else {
+      out[mapped] = text as EnrollmentInput[typeof mapped];
+    }
+  }
+  return out;
+}
+
+function missingColumns(row: RawRow): string[] {
+  const present = new Set<keyof EnrollmentInput>();
+  for (const key of Object.keys(row)) {
+    const mapped = mapHeader(key);
+    if (mapped) present.add(mapped);
+  }
+  return REQUIRED_COLUMNS.filter((col) => !present.has(col));
+}
+
+function parseCSV(source: string | File): Promise<RawRow[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse<RawRow>(source, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length) {
+          reject(new Error(results.errors[0].message));
+          return;
+        }
+        resolve(results.data);
+      },
+      error: (err) => reject(err),
+    });
+  });
+}
+
+function parseExcel(file: File): Promise<RawRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+          resolve([]);
+          return;
+        }
+        const sheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json<RawRow>(sheet, { defval: "" });
+        resolve(json);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read the uploaded file"));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseStudentFile(file: File): Promise<RawRow[]> {
+  const name = file.name.toLowerCase();
+  const type = file.type;
+  if (name.endsWith(".csv") || type === "text/csv") return parseCSV(file);
+  if (
+    name.endsWith(".xlsx") ||
+    name.endsWith(".xls") ||
+    type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    type === "application/vnd.ms-excel"
+  ) {
+    return parseExcel(file);
+  }
+  return Promise.reject(new Error("Unsupported file format. Upload CSV or Excel (.xlsx/.xls)."));
+}
+
 export function BulkEnrollModal({ registry, onClose, onDone }: {
   registry: string;
   onClose: () => void;
@@ -20,66 +133,94 @@ export function BulkEnrollModal({ registry, onClose, onDone }: {
   const [step, setStep]           = useState<Step>("upload");
   const [csvText, setCsvText]     = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
+  const [parseNotice, setParseNotice] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [rows, setRows]           = useState<Row[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress]   = useState({ done: 0, total: 0, errors: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function parseLine(line: string): string[] {
-    const out: string[] = [];
-    let cur = "", inQ = false;
-    for (const ch of line) {
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === "," && !inQ) { out.push(cur.trim()); cur = ""; }
-      else { cur += ch; }
-    }
-    out.push(cur.trim());
-    return out;
-  }
-
-  async function parseAndGenerate(text: string) {
+  async function parseAndGenerateFromData(data: RawRow[]) {
     setParseError(null);
-    const lines = text.trim().split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) { setParseError("CSV needs a header row + at least one data row"); return; }
+    setParseNotice(null);
 
-    const header = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, ""));
-    const required = ["email", "roll", "name", "department", "year"];
-    const missing = required.filter((k) => !header.includes(k));
-    if (missing.length) { setParseError(`Missing columns: ${missing.join(", ")}`); return; }
+    if (!data.length) {
+      setParseError("File needs a header row + at least one data row");
+      return;
+    }
 
-    const get = (cols: string[], key: string) => cols[header.indexOf(key)] ?? "";
+    const missing = missingColumns(data[0]);
+    if (missing.length) {
+      setParseError(`Missing columns: ${missing.join(", ")}`);
+      return;
+    }
 
     const newRows: Row[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseLine(lines[i]);
-      if (cols.every((c) => !c)) continue;
+    let skipped = 0;
+    for (const row of data) {
+      const normalized = normalizeRow(row);
+      if (!normalized.email || !normalized.roll || !normalized.name || !normalized.department) {
+        skipped++;
+        continue;
+      }
       const secret = Array.from(crypto.getRandomValues(new Uint8Array(16)))
         .map((b) => b.toString(16).padStart(2, "0")).join("");
       const fields: EnrollmentFields = {
-        email:      get(cols, "email"),
-        roll:       get(cols, "roll"),
-        name:       get(cols, "name"),
-        department: get(cols, "department"),
-        year:       Number(get(cols, "year")) || new Date().getFullYear(),
+        email: normalized.email,
+        roll: normalized.roll,
+        name: normalized.name,
+        department: normalized.department,
+        year: normalized.year ?? new Date().getFullYear(),
         secret,
       };
       const commitment = await computeCommitment(fields);
       newRows.push({ ...fields, commitment, txStatus: "idle" });
     }
 
-    if (!newRows.length) { setParseError("No valid rows found"); return; }
+    if (!newRows.length) {
+      setParseError("No valid rows found");
+      return;
+    }
+
+    if (skipped > 0) {
+      setParseNotice(`${skipped} row${skipped === 1 ? " was" : "s were"} skipped due to missing fields.`);
+    }
+
     setRows(newRows);
     setStep("review");
   }
 
-  function handleFile(file: File) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string ?? "";
-      setCsvText(text);
-      parseAndGenerate(text);
-    };
-    reader.readAsText(file);
+  async function parseAndGenerateText(text: string) {
+    setParseError(null);
+    setParseNotice(null);
+    setSelectedFileName(null);
+    if (!text.trim()) {
+      setParseError("Paste CSV data first");
+      return;
+    }
+    try {
+      const data = await parseCSV(text);
+      await parseAndGenerateFromData(data);
+    } catch (err) {
+      setParseError(err instanceof Error ? err.message : "Failed to parse CSV");
+    }
+  }
+
+  async function handleFile(file: File) {
+    setParseError(null);
+    setParseNotice(null);
+    setSelectedFileName(file.name);
+    try {
+      const data = await parseStudentFile(file);
+      if (file.name.toLowerCase().endsWith(".csv")) {
+        setCsvText(await file.text());
+      } else {
+        setCsvText("");
+      }
+      await parseAndGenerateFromData(data);
+    } catch (err) {
+      setParseError(err instanceof Error ? err.message : "Failed to parse file");
+    }
   }
 
   function downloadCSV() {
@@ -138,7 +279,7 @@ export function BulkEnrollModal({ registry, onClose, onDone }: {
           <div>
             <div className="sd-card-title">Bulk enrollment</div>
             <div className="sd-card-sub" style={{ marginTop: 2 }}>
-              {step === "upload"  && "Upload a CSV with student details — secrets are generated automatically."}
+              {step === "upload"  && "Upload a CSV or Excel file with student details - secrets are generated automatically."}
               {step === "review"  && `${rows.length} students ready. Download the secrets sheet, then submit proposals.`}
               {step === "submit"  && `Submitting ${progress.done} / ${progress.total} proposals…`}
             </div>
@@ -174,14 +315,30 @@ export function BulkEnrollModal({ registry, onClose, onDone }: {
             {/* File drop zone */}
             <div
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) void handleFile(f); }}
               onClick={() => fileRef.current?.click()}
               style={{ border: "2px dashed var(--border-default)", borderRadius: "var(--radius-md)", padding: "28px 20px", textAlign: "center", cursor: "pointer", color: "var(--fg-3)", fontSize: 13, transition: "border-color var(--dur-fast)" }}
             >
               <div style={{ fontSize: 24, marginBottom: 6 }}>📄</div>
-              <div>Drop a <code>.csv</code> file here, or click to browse</div>
-              <input ref={fileRef} type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              <div>Drop a <code>.csv</code> or <code>.xlsx</code> file here, or click to browse</div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); }}
+              />
             </div>
+
+            <button type="button" onClick={() => fileRef.current?.click()} className="sd-btn sd-btn--secondary" style={{ justifyContent: "center" }}>
+              Choose CSV/Excel file
+            </button>
+
+            {selectedFileName && (
+              <div style={{ fontSize: 11, color: "var(--fg-4)", textAlign: "center" }}>
+                Selected file: <span style={{ color: "var(--fg-2)" }}>{selectedFileName}</span>
+              </div>
+            )}
 
             <div style={{ textAlign: "center", fontSize: 11, color: "var(--fg-4)" }}>— or paste CSV text below —</div>
 
@@ -198,7 +355,13 @@ export function BulkEnrollModal({ registry, onClose, onDone }: {
               <div className="sd-alert sd-alert--danger" style={{ fontSize: 12 }}>{parseError}</div>
             )}
 
-            <button onClick={() => parseAndGenerate(csvText)} className="sd-btn sd-btn--primary" style={{ justifyContent: "center" }}>
+            {parseNotice && (
+              <div style={{ padding: "10px 12px", borderRadius: "var(--radius-md)", background: "var(--yellow-50, #fefce8)", border: "1px solid var(--yellow-200, #fef08a)", fontSize: 12, color: "var(--yellow-800, #854d0e)" }}>
+                {parseNotice}
+              </div>
+            )}
+
+            <button onClick={() => void parseAndGenerateText(csvText)} className="sd-btn sd-btn--primary" style={{ justifyContent: "center" }}>
               Parse & generate secrets →
             </button>
           </div>
