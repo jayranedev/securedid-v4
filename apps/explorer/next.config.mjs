@@ -14,7 +14,7 @@ const nextConfig = {
     };
     config.resolve.alias = {
       ...config.resolve.alias,
-      "valtio/vanilla": require.resolve("valtio/vanilla"),
+      "valtio/vanilla$": require.resolve("valtio/vanilla"),
       "valtio/vanilla/utils": require.resolve("valtio/vanilla/utils"),
     };
     config.externals = [...(config.externals || []), "pino-pretty"];
