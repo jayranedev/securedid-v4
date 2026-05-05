@@ -27,5 +27,9 @@
     "valtio": "^1.13.2",
     "viem": "^2.48.8",
     "wagmi": "^2.19.5"
+  },
+  "optionalDependencies": {
+    "@next/swc-linux-x64-gnu": "14.2.33",
+    "@next/swc-linux-x64-musl": "14.2.33"
   }
 }
