@@ -1,3 +1,6 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,6 +11,10 @@ const nextConfig = {
       "pino-pretty": false,
       "lokijs": false,
       "encoding": false,
+    };
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "valtio/vanilla": require.resolve("valtio/vanilla"),
     };
     config.externals = [...(config.externals || []), "pino-pretty"];
     return config;
