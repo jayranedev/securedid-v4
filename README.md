@@ -212,7 +212,7 @@ Responsible for:
 Known deployed factory address:
 
 ```txt
-0x0d22eF5A76d7a324c4177B2751570F54e4EC0B86
+0xBeBF78f4D8D2e8645E5E71d050f1E5342624fe26
 ```
 
 ---
@@ -237,6 +237,12 @@ Handles:
 - Student approval flows
 - University access management
 - Credential access permissions
+
+Known deployed Verification Access Manager address:
+
+```txt
+0xbC9ef7cC01700DC7547be07d02058774f7D20590
+```
 
 ---
 
