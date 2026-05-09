@@ -41,7 +41,7 @@ const STATUS_LABELS = ["Active", "Graduated", "Dropped", "Revoked"] as const;
 
 /* ─── Page Component ─── */
 export default function VCRequestsPage() {
-  const { address } = useWallet();
+  const { address, connect } = useWallet();
   const [requests, setRequests] = useState<AccessRequestRow[]>([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
@@ -112,8 +112,12 @@ export default function VCRequestsPage() {
   useEffect(() => { void loadRequests(); }, [loadRequests]);
 
   /* ─── Filter logic ─── */
-  const permitted = requests.filter((r) => r.active && !r.revoked);
-  const revoked   = requests.filter((r) => r.revoked);
+  const requesterAddress = address?.toLowerCase() ?? null;
+  const visibleRequests = requesterAddress
+    ? requests.filter((r) => r.requester === requesterAddress)
+    : [];
+  const permitted = visibleRequests.filter((r) => r.active && !r.revoked);
+  const revoked   = visibleRequests.filter((r) => r.revoked);
   const filtered  = (tab === "permitted" ? permitted : revoked).filter((r) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -170,7 +174,7 @@ export default function VCRequestsPage() {
         <div>
           <div className="sd-eyebrow">Compliance</div>
           <h1 className="sd-page-title">VC Access Requests</h1>
-          <p className="sd-page-sub">View all requested Verifiable Credentials — permitted and revoked.</p>
+          <p className="sd-page-sub">View Verifiable Credentials approved for your connected requester account.</p>
         </div>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 6, font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--accent)" }}>
           ← Back to Explorer
@@ -205,16 +209,29 @@ export default function VCRequestsPage() {
 
       {error && <div className="sd-alert sd-alert--danger" style={{ marginBottom: 24 }}>{error}</div>}
 
+      {!loading && !requesterAddress && !error && (
+        <div className="sd-card sd-card--pad sd-empty" style={{ marginTop: 24 }}>
+          <div className="sd-empty__illus">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V8a5 5 0 0 1 10 0v3" /></svg>
+          </div>
+          <div className="sd-empty__title">Connect requester wallet</div>
+          <p className="sd-empty__sub">Approved VC permissions are scoped to the requester account that submitted the access request.</p>
+          <button onClick={() => void connect()} className="sd-btn sd-btn--primary" style={{ marginTop: 20 }}>
+            Connect Wallet
+          </button>
+        </div>
+      )}
+
       {loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[0, 1, 2].map((i) => <div key={i} className="sd-skel" style={{ height: 72 }} />)}
         </div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && requesterAddress && filtered.length === 0 && (
         <div className="sd-empty">
           <div className="sd-empty__title">{tab === "permitted" ? "No permitted requests" : "No revoked requests"}</div>
-          <p className="sd-empty__sub">{tab === "permitted" ? "No access requests are currently active." : "No access requests have been revoked."}</p>
+          <p className="sd-empty__sub">{tab === "permitted" ? "This wallet has no active approved VC permissions." : "This wallet has no revoked VC permissions."}</p>
         </div>
       )}
 
