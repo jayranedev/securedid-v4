@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  background: 
+    linear-gradient(to bottom, color-mix(in srgb, var(--bg-page) 30%, transparent), color-mix(in srgb, var(--bg-page) 75%, transparent)),
+    url('/bg-abstract.png') center/cover fixed no-repeat !important;
+}

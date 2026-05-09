@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning data-app="panelist" className={`${inter.variable} ${manrope.variable} ${mono.variable}`}>
       <head><EthereumGuard /></head>
-      <body style={{ minHeight: "100vh", background: "var(--bg-page)" }}>
+      <body style={{ minHeight: "100vh" }}>
         <RainbowKitProvider>
           <nav className="sd-nav">
             <div className="sd-nav__left">
