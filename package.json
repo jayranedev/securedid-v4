@@ -13,6 +13,7 @@
     "dev:university": "npm run dev --workspace=@securedid/university",
     "dev:college": "npm run dev --workspace=@securedid/college",
     "dev:explorer": "npm run dev --workspace=@securedid/explorer",
+    "dev:attack-demo": "npm run dev --workspace=@securedid/attack-demo",
     "build:factory": "npm run build --workspace=@securedid/factory",
     "build:panelist": "npm run build --workspace=@securedid/panelist",
     "build:student": "npm run build --workspace=@securedid/student",
