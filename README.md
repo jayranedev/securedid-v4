@@ -316,15 +316,31 @@ RPC: https://sepolia.base.org
 
 ## Factory Dashboard
 
-![Factory Dashboard](docs/screenshots/factory.png)
+![Factory Dashboard](docs\screenshots\factory1.png)
+
+![Factory Dashboard](docs\screenshots\factory2.png)
 
 ## Student Dashboard
 
-![Student Dashboard](docs/screenshots/student.png)
+![Student Dashboard](docs\screenshots\student1.png)
+
+![Student Dashboard](docs\screenshots\student2.png)
 
 ## Panelist Dashboard
 
-![Panelist Dashboard](docs/screenshots/panelist.png)
+![Panelist Dashboard](docs\screenshots\panelist1.png)
+
+![Panelist Dashboard](docs\screenshots\panelist2.png)
+
+![Panelist Dashboard](docs\screenshots\panelist3.png)
+
+---
+
+## Explorer
+
+![Explorer](docs\screenshots\explorer1.png)
+
+![Explorer](docs\screenshots\explorer2.png)
 
 ---
 
