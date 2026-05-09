@@ -542,7 +542,9 @@ function IssuedCard({
               {showRaw && (
                 <div className="sd-vc-raw__content">
                   <button className="sd-vc-raw__copy" onClick={copyJson}><CopyIcon /> Copy</button>
-                  <pre className="sd-json">{safeFormatJson(decrypted)}</pre>
+                  <pre className="sd-json">
+                    {decrypted ? safeFormatJson(decrypted) : "No decrypted data"}
+                  </pre>
                 </div>
               )}
             </div>
