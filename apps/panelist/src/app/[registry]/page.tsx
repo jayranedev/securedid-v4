@@ -9,12 +9,13 @@ import * as XLSX from "xlsx";
 import {
   useWallet, AddressPill, getRegistryRead, getRegistryWrite,
   fetchAllProposals, decodeProposalData, proposalTypeLabel, ProposalType,
-  ProposalSummary, queryFilterAll,
+  ProposalSummary, queryFilterAll, getAccessManagerRead, getAccessManagerWrite,
 } from "@securedid/shared";
 import { NewProposalModal } from "@/components/NewProposalModal";
 import { BulkEnrollModal } from "@/components/BulkEnrollModal";
+import { ACCESS_MANAGER_ADDRESS } from "@/lib/env";
 
-type Tab = "proposals" | "students" | "panelists";
+type Tab = "proposals" | "students" | "records" | "access" | "panelists";
 
 type RawRow = Record<string, unknown>;
 
@@ -165,6 +166,8 @@ const detailLabelStyle = {
   color: "var(--fg-4)",
   marginRight: 6,
 } as const;
+
+const STATUS_LABELS = ["Active", "Graduated", "Dropped", "Revoked"] as const;
 
 export default function RegistryPage() {
   const params = useParams<{ registry: string }>();
@@ -354,6 +357,7 @@ export default function RegistryPage() {
         {([
           ["proposals", `Proposals${activeProposals.length ? ` (${activeProposals.length})` : ""}`],
           ["students",  "Pending Students"],
+          ...(isPanelist ? ([ ["records", "Student Records"], ["access", "Access Requests"] ] as [Tab, string][]) : []),
           ["panelists", `Panelists (${panelists.length})`],
         ] as [Tab, string][]).map(([k, label]) => (
           <button key={k} onClick={() => setTab(k)} className={`sd-tab${tab === k ? " active" : ""}`}>{label}</button>
@@ -367,6 +371,12 @@ export default function RegistryPage() {
       )}
       {!loading && tab === "students" && (
         <PendingStudents registry={registry} isPanelist={isPanelist} threshold={threshold} onChange={refresh} deployedAt={deployedAt} institutionName={name} commitmentMap={commitmentMap} />
+      )}
+      {!loading && tab === "records" && isPanelist && (
+        <StudentRecords registry={registry} deployedAt={deployedAt} />
+      )}
+      {!loading && tab === "access" && isPanelist && (
+        <AccessRequests registry={registry} threshold={threshold} />
       )}
       {!loading && tab === "panelists" && (
         <PanelistList panelists={panelists} myAddr={address} threshold={threshold} />
@@ -496,15 +506,26 @@ function ProposalsList({ proposals, isPanelist, myAddr, threshold, onVote, busy,
               </div>
 
               <div style={{ textAlign: "center", flexShrink: 0 }}>
-                <div style={{ font: "var(--fw-regular) 36px/1 var(--font-display)", color: "var(--fg-1)" }}>{p.approvals}</div>
-                <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of {threshold}</div>
+                {p.executed ? (
+                  <>
+                    <div style={{ font: "var(--fw-regular) 28px/1 var(--font-sans)", color: "var(--success)" }}>✓</div>
+                    <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--success-700)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>Done</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ font: "var(--fw-regular) 36px/1 var(--font-heading)", color: "var(--fg-1)" }}>{p.approvals}</div>
+                    <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of {threshold}</div>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="sd-progress" style={{ marginTop: 14 }}>
-              <div className={`sd-progress__fill${p.executed ? " sd-progress--success" : ""}`}
-                style={{ width: `${Math.min(100, (p.approvals / threshold) * 100)}%` }} />
-            </div>
+            {!p.executed && (
+              <div className="sd-progress" style={{ marginTop: 14 }}>
+                <div className="sd-progress__fill"
+                  style={{ width: `${Math.min(100, (p.approvals / threshold) * 100)}%` }} />
+              </div>
+            )}
 
             {isPanelist && !p.executed && !expired && !myVote && (
               <button onClick={() => onVote(p.id)} disabled={busy !== null}
@@ -769,6 +790,277 @@ function PendingStudents({ registry, isPanelist, threshold, onChange, deployedAt
           )}
         </div>
       );
+      })}
+    </div>
+  );
+}
+
+interface StudentRecordRow {
+  student: string;
+  status: number;
+  cid: string;
+}
+
+function StudentRecords({ registry, deployedAt }: { registry: string; deployedAt?: number }) {
+  const { getSigner } = useWallet();
+  const [records, setRecords] = useState<StudentRecordRow[]>([]);
+  const [loading, setLoad] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [statusDraft, setStatusDraft] = useState<Record<string, number>>({});
+
+  async function refresh() {
+    setLoad(true);
+    setError(null);
+    try {
+      const reg = getRegistryRead(registry);
+      const fromBlock = deployedAt ? { fromTimestamp: deployedAt } : undefined;
+      const events = await queryFilterAll(reg, reg.filters.DIDIssued(), fromBlock);
+      const students = Array.from(new Set(events.map((e) => ((e as ethers.EventLog).args?.[0] as string).toLowerCase())));
+      const rows = await Promise.all(students.map(async (student) => {
+        const [status, cid] = await Promise.all([
+          reg.getIdentityStatus(student),
+          reg.getCID(student),
+        ]);
+        return {
+          student,
+          status: Number(status),
+          cid: String(cid ?? ""),
+        } as StudentRecordRow;
+      }));
+      setRecords(rows);
+      setStatusDraft(Object.fromEntries(rows.map((r) => [r.student, r.status])));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load records");
+    } finally { setLoad(false); }
+  }
+
+  useEffect(() => { void refresh(); }, [registry, deployedAt]);
+
+  async function updateStatus(student: string) {
+    const nextStatus = statusDraft[student];
+    if (nextStatus === undefined || nextStatus === 3) return;
+    setBusy(`status-${student}`);
+    try {
+      const signer = await getSigner();
+      const regW = await getRegistryWrite(registry, signer);
+      const tx = await regW.updateStatus(student, nextStatus);
+      await tx.wait();
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message.split("\n")[0] : "Update failed");
+    } finally { setBusy(null); }
+  }
+
+  async function reactivate(student: string) {
+    setBusy(`reactivate-${student}`);
+    try {
+      const signer = await getSigner();
+      const regW = await getRegistryWrite(registry, signer);
+      const tx = await regW.reactivateIdentity(student);
+      await tx.wait();
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message.split("\n")[0] : "Reactivate failed");
+    } finally { setBusy(null); }
+  }
+
+  if (loading) return <div style={{ color: "var(--fg-4)", fontSize: 13, paddingTop: 16 }}>Loading student records…</div>;
+
+  if (records.length === 0) {
+    return (
+      <div className="sd-empty">
+        <div className="sd-empty__title">No issued students</div>
+        <p className="sd-empty__sub">No students have completed enrollment yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {error && <div className="sd-alert sd-alert--danger" style={{ fontSize: 12 }}>{error}</div>}
+      {records.map((r) => {
+        const isRevoked = r.status === 3;
+        const isActive = r.status === 0;
+        return (
+          <div key={r.student} className="sd-card sd-card--pad">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--fg-2)", marginBottom: 6 }}>Student</div>
+                <AddressPill address={r.student} />
+              </div>
+              <div style={{ fontSize: 12, color: "var(--fg-3)" }}>
+                Status: <strong>{STATUS_LABELS[r.status] ?? "Unknown"}</strong>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {!isRevoked && (
+                <select
+                  value={statusDraft[r.student] ?? r.status}
+                  onChange={(e) => setStatusDraft({ ...statusDraft, [r.student]: Number(e.target.value) })}
+                  className="sd-input"
+                  style={{ fontSize: 12, padding: "6px 10px", minWidth: 160 }}
+                >
+                  <option value={0}>Active</option>
+                  <option value={1}>Graduated</option>
+                  <option value={2}>Dropped</option>
+                </select>
+              )}
+              {!isRevoked && (
+                <button
+                  onClick={() => updateStatus(r.student)}
+                  disabled={busy !== null || (statusDraft[r.student] ?? r.status) === r.status}
+                  className="sd-btn sd-btn--secondary"
+                >
+                  {busy === `status-${r.student}` ? "Updating…" : "Update status"}
+                </button>
+              )}
+              {!isActive && (
+                <button
+                  onClick={() => reactivate(r.student)}
+                  disabled={busy !== null}
+                  className="sd-btn sd-btn--primary"
+                >
+                  {busy === `reactivate-${r.student}` ? "Reactivating…" : "Reactivate"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+interface AccessRequestRow {
+  id: number;
+  requester: string;
+  student: string;
+  registry: string;
+  createdAt: number;
+  expiry: number;
+  approvals: number;
+  studentApproved: boolean;
+  active: boolean;
+  revoked: boolean;
+  approvedByMe: boolean;
+}
+
+function AccessRequests({ registry, threshold }: { registry: string; threshold: number }) {
+  const { address, getSigner } = useWallet();
+  const [rows, setRows] = useState<AccessRequestRow[]>([]);
+  const [loading, setLoad] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refresh() {
+    if (!ACCESS_MANAGER_ADDRESS) return;
+    setLoad(true);
+    setError(null);
+    try {
+      const mgr = getAccessManagerRead(ACCESS_MANAGER_ADDRESS);
+      const next = await mgr.nextRequestId() as bigint;
+      const out: AccessRequestRow[] = [];
+      for (let i = 1n; i < next; i++) {
+        const r = await mgr.getRequest(i);
+        const row: AccessRequestRow = {
+          id: Number(i),
+          requester: (r.requester as string).toLowerCase(),
+          student: (r.student as string).toLowerCase(),
+          registry: (r.registry as string).toLowerCase(),
+          createdAt: Number(r.createdAt),
+          expiry: Number(r.expiry),
+          approvals: Number(r.approvals),
+          studentApproved: Boolean(r.studentApproved),
+          active: Boolean(r.active),
+          revoked: Boolean(r.revoked),
+          approvedByMe: address ? await mgr.hasUniversityApproved(i, address) : false,
+        };
+        if (row.registry === registry.toLowerCase()) out.push(row);
+      }
+      setRows(out);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load requests");
+    } finally { setLoad(false); }
+  }
+
+  useEffect(() => { void refresh(); }, [registry, address]);
+
+  async function approve(id: number) {
+    if (!ACCESS_MANAGER_ADDRESS) return;
+    setBusy(id);
+    try {
+      const signer = await getSigner();
+      const mgr = await getAccessManagerWrite(ACCESS_MANAGER_ADDRESS, signer);
+      const tx = await mgr.approveByUniversity(id);
+      await tx.wait();
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message.split("\n")[0] : "Approval failed");
+    } finally { setBusy(null); }
+  }
+
+  if (!ACCESS_MANAGER_ADDRESS) {
+    return (
+      <div className="sd-card sd-card--pad">
+        <div className="sd-card-title">Access requests</div>
+        <div className="sd-card-sub" style={{ marginTop: 6 }}>Access manager is not configured.</div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return <div style={{ color: "var(--fg-4)", fontSize: 13, paddingTop: 16 }}>Loading access requests…</div>;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="sd-empty">
+        <div className="sd-empty__title">No access requests</div>
+        <p className="sd-empty__sub">No third-party verification requests yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {error && <div className="sd-alert sd-alert--danger" style={{ fontSize: 12 }}>{error}</div>}
+      {rows.map((r) => {
+        const expired = r.expiry > 0 && r.expiry * 1000 < Date.now();
+        const status = r.revoked ? "Revoked" : r.active ? "Active" : expired ? "Expired" : r.studentApproved ? "Awaiting university" : "Waiting for student";
+        const canApprove = !r.approvedByMe && !r.revoked && !expired && r.studentApproved;
+        return (
+          <div key={r.id} className="sd-card sd-card--pad">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--fg-2)" }}>Request #{r.id}</div>
+                <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "var(--fg-3)" }}>
+                  <div>Requester: <AddressPill address={r.requester} /></div>
+                  <div>Student: <AddressPill address={r.student} /></div>
+                  <div>Status: <strong>{status}</strong></div>
+                  {r.expiry > 0 && <div>Expires: {new Date(r.expiry * 1000).toLocaleDateString()}</div>}
+                </div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ font: "var(--fw-regular) 32px/1 var(--font-display)", color: "var(--fg-1)" }}>{r.approvals}</div>
+                <div style={{ font: "var(--fw-medium) 10px/1 var(--font-sans)", color: "var(--fg-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>of {threshold}</div>
+              </div>
+            </div>
+
+            {canApprove && (
+              <button onClick={() => approve(r.id)} disabled={busy !== null}
+                className="sd-btn sd-btn--primary" style={{ marginTop: 12, width: "100%", justifyContent: "center" }}>
+                {busy === r.id ? "Submitting…" : "Approve request"}
+              </button>
+            )}
+            {r.approvedByMe && !r.active && !r.revoked && !expired && (
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--fg-4)", textAlign: "center" }}>
+                You&apos;ve approved. Waiting for other panelists.
+              </div>
+            )}
+          </div>
+        );
       })}
     </div>
   );

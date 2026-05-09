@@ -69,23 +69,35 @@ export default function Home() {
       )}
 
       {!loading && rows.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {rows.map((r) => (
             <Link key={r.registry} href={`/${r.registry}`}
-              className="sd-card sd-card--pad"
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", gap: 16, transition: "box-shadow var(--dur-fast) var(--ease-out)" }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ font: "var(--fw-semibold) 15px/1 var(--font-sans)", color: "var(--fg-1)" }}>{r.name}</div>
-                {r.website && <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 3 }}>{r.website}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                  <AddressPill address={r.registry} head={8} tail={6} showExplorer={false} />
-                  <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{new Date(r.deployedAt * 1000).toLocaleDateString()}</span>
+              className="sd-card"
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", textDecoration: "none", gap: 16, overflow: "hidden", transition: "box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "20px 24px", minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: "var(--radius-md)", flexShrink: 0,
+                  background: "linear-gradient(135deg, var(--accent-100), var(--accent-50))",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)",
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /></svg>
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ font: "var(--fw-semibold) 15px/1.3 var(--font-sans)", color: "var(--fg-1)" }}>{r.name}</div>
+                  {r.website && <div style={{ fontSize: 12, color: "var(--accent)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.website}</div>}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                    <AddressPill address={r.registry} head={8} tail={6} showExplorer={false} />
+                    <span style={{ fontSize: 11, color: "var(--fg-4)" }}>{new Date(r.deployedAt * 1000).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                style={{ width: 16, height: 16, color: "var(--fg-4)", flexShrink: 0 }}>
-                <path d="M9 18l6-6-6-6" />
-              </svg>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, paddingRight: 24, flexShrink: 0 }}>
+                <span className="sd-pill sd-pill--active"><span className="sd-pill__dot" /> Active</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  style={{ width: 16, height: 16, color: "var(--fg-4)" }}>
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </div>
             </Link>
           ))}
         </div>

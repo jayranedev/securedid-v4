@@ -1,0 +1,27 @@
+export const ACCESS_MANAGER_ABI = [
+  "function createRequest(address registry, address student) returns (uint256)",
+  "function approveByStudent(uint256 id, uint256 durationSeconds)",
+  "function approveByUniversity(uint256 id)",
+  "function revokeAccess(uint256 id)",
+  "function isRequestActive(uint256 id) view returns (bool)",
+  "function hasUniversityApproved(uint256 id, address panelist) view returns (bool)",
+  "function getRequest(uint256 id) view returns (tuple(address requester,address student,address registry,uint40 createdAt,uint40 expiry,uint8 approvals,bool studentApproved,bool active,bool revoked))",
+  "function nextRequestId() view returns (uint256)",
+
+  "error RequestNotFound()",
+  "error NotStudent()",
+  "error NotPanelist()",
+  "error AlreadyApproved()",
+  "error InvalidDuration()",
+  "error RequestRevoked()",
+  "error RequestExpired()",
+  "error InvalidRegistry()",
+  "error StudentRevoked()",
+  "error StudentNotIssued()",
+
+  "event AccessRequested(uint256 indexed id, address indexed requester, address indexed student, address registry)",
+  "event StudentApproved(uint256 indexed id, address indexed student, uint256 expiry)",
+  "event UniversityApproved(uint256 indexed id, address indexed panelist, uint8 approvals)",
+  "event AccessActivated(uint256 indexed id, uint256 expiry)",
+  "event AccessRevoked(uint256 indexed id, address indexed revokedBy)",
+] as const;

@@ -29,6 +29,13 @@ contract DIDRegistryV6 {
         RemovePanelist     // 5: abi.encode(address panelistAddr)
     }
 
+    enum IdentityStatus {
+        ACTIVE,
+        GRADUATED,
+        DROPPED,
+        REVOKED
+    }
+
     struct Proposal {
         ProposalType pType;
         uint8        approvals;
@@ -60,6 +67,7 @@ contract DIDRegistryV6 {
     mapping(address => mapping(address => bool)) public hasApproved;
     mapping(address => bool)    public pendingRegistration;
     mapping(address => uint256) public revocationIndex;
+    mapping(address => IdentityStatus) public identityStatus;
 
     // ── Revocation state ───────────────────────────────────────────────────────
 
@@ -88,6 +96,8 @@ contract DIDRegistryV6 {
     event ProposalApproved(uint256 indexed id, address indexed panelist, uint8 approvals);
     event ProposalExecuted(uint256 indexed id);
     event EnrollmentAuthorized(bytes32 indexed commitment);
+    event IdentityStatusUpdated(address indexed student, IdentityStatus status, uint256 timestamp);
+    event IdentityReactivated(address indexed student, uint256 timestamp);
 
     // ── Errors ─────────────────────────────────────────────────────────────────
 
@@ -109,6 +119,7 @@ contract DIDRegistryV6 {
     error MaxPanelistsReached();
     error ThresholdViolation();
     error InvalidThreshold();
+    error InvalidStatusUpdate();
 
     // ── Modifiers ──────────────────────────────────────────────────────────────
 
@@ -235,6 +246,8 @@ contract DIDRegistryV6 {
             uint256 bit  = rIdx % 256;
             revokedSlots[slot] |= (1 << bit);
             revokedAt[student] = block.timestamp;
+            identityStatus[student] = IdentityStatus.REVOKED;
+            emit IdentityStatusUpdated(student, IdentityStatus.REVOKED, block.timestamp);
             emit CredentialRevoked(student, rIdx, reason, block.timestamp);
 
         } else if (p.pType == ProposalType.ChangeThreshold) {
@@ -305,8 +318,33 @@ contract DIDRegistryV6 {
             addressToCID[student] = cid;
             revocationIndex[student] = rIdx;
             pendingRegistration[student] = false;
+            identityStatus[student] = IdentityStatus.ACTIVE;
+            emit IdentityStatusUpdated(student, IdentityStatus.ACTIVE, block.timestamp);
             emit DIDIssued(student, cid, rIdx, block.timestamp);
         }
+    }
+
+    // ── Identity status ──────────────────────────────────────────────────────
+
+    function updateStatus(address student, IdentityStatus status) external onlyPanelist {
+        if (bytes(addressToCID[student]).length == 0) revert NotRegistered();
+        if (status == IdentityStatus.REVOKED) revert InvalidStatusUpdate();
+        identityStatus[student] = status;
+        emit IdentityStatusUpdated(student, status, block.timestamp);
+    }
+
+    function reactivateIdentity(address student) external onlyPanelist {
+        if (bytes(addressToCID[student]).length == 0) revert NotRegistered();
+        identityStatus[student] = IdentityStatus.ACTIVE;
+        uint256 rIdx = revocationIndex[student];
+        if (isRevoked(rIdx)) {
+            uint256 slot = rIdx / 256;
+            uint256 bit  = rIdx % 256;
+            revokedSlots[slot] &= ~(1 << bit);
+            revokedAt[student] = 0;
+        }
+        emit IdentityStatusUpdated(student, IdentityStatus.ACTIVE, block.timestamp);
+        emit IdentityReactivated(student, block.timestamp);
     }
 
     // ── Access grants ──────────────────────────────────────────────────────────
@@ -342,6 +380,10 @@ contract DIDRegistryV6 {
 
     function getEncryptionPubkey(address student) external view returns (bytes memory) {
         return encryptionPubkeys[student];
+    }
+
+    function getIdentityStatus(address student) external view returns (IdentityStatus) {
+        return identityStatus[student];
     }
 
     function isRevoked(uint256 rIdx) public view returns (bool) {

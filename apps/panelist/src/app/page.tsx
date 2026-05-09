@@ -49,11 +49,13 @@ export default function Home() {
   const mine = rows.filter((r) => r.isPanelist);
 
   return (
-    <div className="sd-page">
-      <div className="sd-page-header">
-        <div className="sd-eyebrow">Panelist</div>
-        <h1 className="sd-page-title">My Panelist Seats</h1>
-        <p className="sd-page-sub">Registries where your wallet is an authorized panelist. Open one to vote on proposals or approve pending students.</p>
+    <div className="sd-page" style={{ maxWidth: 1200 }}>
+      <div className="sd-page-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <div className="sd-eyebrow">Governance</div>
+          <h1 className="sd-page-title">Panelist Dashboard</h1>
+          <p className="sd-page-sub">Registries where your wallet is an authorized panelist. Open one to vote on proposals or approve pending students.</p>
+        </div>
       </div>
 
       {error && <div className="sd-alert sd-alert--danger" style={{ marginBottom: 24 }}>{error}</div>}
@@ -69,8 +71,8 @@ export default function Home() {
       )}
 
       {address && loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {[0, 1].map((i) => <div key={i} className="sd-skel" style={{ height: 130 }} />)}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+          {[0, 1].map((i) => <div key={i} className="sd-skel" style={{ height: 160 }} />)}
         </div>
       )}
 
@@ -85,34 +87,49 @@ export default function Home() {
       )}
 
       {address && !loading && mine.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
           {mine.map((r) => (
-            <Link key={r.registry} href={`/${r.registry}`} className="sd-seat">
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="sd-seat__name">{r.name}</div>
-                  {r.website && <div className="sd-seat__addr">{r.website}</div>}
+            <Link key={r.registry} href={`/${r.registry}`} className="sd-card"
+              style={{ display: "flex", flexDirection: "column", textDecoration: "none", overflow: "hidden" }}>
+              <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: "var(--radius-lg)", flexShrink: 0,
+                      background: "linear-gradient(135deg, var(--accent-100), var(--accent-50))",
+                      display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent)",
+                    }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /></svg>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ font: "var(--fw-semibold) 16px/1.3 var(--font-heading)", color: "var(--fg-1)" }}>{r.name}</div>
+                      {r.website && <div style={{ font: "var(--fw-regular) 12px/1 var(--font-sans)", color: "var(--accent)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.website}</div>}
+                    </div>
+                  </div>
+                  <span className="sd-pill sd-pill--you">Panelist</span>
                 </div>
-                <span className="sd-pill sd-pill--you">Panelist</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <AddressPill address={r.registry} />
+                </div>
               </div>
-              <div className="sd-seat__stats">
-                <AddressPill address={r.registry} />
+              <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border-subtle)", font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span>Open dashboard</span>
+                <span style={{ fontSize: 16 }}>→</span>
               </div>
-              <div style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--accent)", marginTop: 12 }}>Open dashboard →</div>
             </Link>
           ))}
         </div>
       )}
 
       {address && !loading && rows.filter((r) => !r.isPanelist).length > 0 && (
-        <details style={{ paddingTop: 20, borderTop: "1px solid var(--border-subtle)", marginTop: 24 }}>
+        <details style={{ paddingTop: 24, borderTop: "1px solid var(--border-subtle)", marginTop: 32 }}>
           <summary style={{ font: "var(--fw-regular) 13px/1 var(--font-sans)", color: "var(--fg-3)", cursor: "pointer" }}>
             {rows.filter((r) => !r.isPanelist).length} other institutions (not a panelist)
           </summary>
-          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {rows.filter((r) => !r.isPanelist).map((r) => (
-              <div key={r.registry} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "var(--fg-2)" }}>{r.name}</span>
+              <div key={r.registry} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, padding: "8px 0" }}>
+                <span style={{ color: "var(--fg-2)", font: "var(--fw-medium) 14px/1 var(--font-heading)" }}>{r.name}</span>
                 <AddressPill address={r.registry} />
               </div>
             ))}

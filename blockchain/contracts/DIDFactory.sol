@@ -3,12 +3,6 @@ pragma solidity ^0.8.20;
 
 import { DIDRegistryV6 } from "./DIDRegistryV6.sol";
 
-/**
- * DIDFactory — deploys per-institution DIDRegistryV6 instances.
- *
- * Panelist count (1–10) and vote threshold are chosen at deploy time.
- * Both can be changed later via governance proposals on the registry itself.
- */
 contract DIDFactory {
 
     uint8 public constant MAX_PANELISTS = 10;
@@ -44,19 +38,13 @@ contract DIDFactory {
     error InvalidPanelistCount();
     error InvalidThreshold();
 
-    /**
-     * @notice Deploy a new DIDRegistryV6 for an institution.
-     * @param initialPanelists  1–10 distinct, non-zero panelist addresses
-     * @param threshold         Votes required to execute a proposal (1..N)
-     * @param name              Human-readable institution name (must be unique)
-     * @param website           Institution homepage URL
-     */
     function createRegistry(
         address[] calldata initialPanelists,
         uint8              threshold,
-        string    calldata name,
-        string    calldata website
+        string calldata    name,
+        string calldata    website
     ) external returns (address) {
+
         uint256 n = initialPanelists.length;
         if (n == 0 || n > MAX_PANELISTS) revert InvalidPanelistCount();
         if (threshold == 0 || threshold > n) revert InvalidThreshold();
@@ -64,26 +52,51 @@ contract DIDFactory {
         _validatePanelists(initialPanelists);
 
         if (bytes(name).length == 0) revert EmptyName();
+
         bytes32 nameHash = keccak256(bytes(name));
         if (usedNames[nameHash]) revert NameTaken();
         usedNames[nameHash] = true;
 
-        DIDRegistryV6 reg = new DIDRegistryV6(initialPanelists, threshold);
-        address addr = address(reg);
+        address addr;
+        {
+            DIDRegistryV6 reg = new DIDRegistryV6(initialPanelists, threshold);
+            addr = address(reg);
+        }
 
         registries.push(addr);
         isRegistry[addr] = true;
+
         institutions[addr] = InstitutionInfo({
-            name:         name,
-            website:      website,
-            deployedAt:   block.timestamp,
-            deployer:     msg.sender,
-            threshold:    threshold,
+            name: name,
+            website: website,
+            deployedAt: block.timestamp,
+            deployer: msg.sender,
+            threshold: threshold,
             panelistCount: uint8(n)
         });
 
-        emit RegistryCreated(addr, msg.sender, name, website, initialPanelists, threshold, block.timestamp);
+        // 🔥 Emit inline BUT after reducing stack pressure
+        _emitRegistryCreated(addr, initialPanelists);
+
         return addr;
+    }
+
+    // ✅ Reduced parameters drastically
+    function _emitRegistryCreated(
+        address registry,
+        address[] calldata panelists
+    ) internal {
+        InstitutionInfo storage info = institutions[registry];
+
+        emit RegistryCreated(
+            registry,
+            info.deployer,
+            info.name,
+            info.website,
+            panelists,
+            info.threshold,
+            info.deployedAt
+        );
     }
 
     function _validatePanelists(address[] calldata p) internal pure {
@@ -94,8 +107,6 @@ contract DIDFactory {
             }
         }
     }
-
-    // ── View helpers ───────────────────────────────────────────────────────────
 
     function registryCount() external view returns (uint256) {
         return registries.length;
@@ -124,7 +135,14 @@ contract DIDFactory {
         uint8 panelistCount
     ) {
         InstitutionInfo storage info = institutions[registry];
-        return (info.name, info.website, info.deployedAt, info.deployer, info.threshold, info.panelistCount);
+        return (
+            info.name,
+            info.website,
+            info.deployedAt,
+            info.deployer,
+            info.threshold,
+            info.panelistCount
+        );
     }
 
     function getRegistriesPaginated(uint256 offset, uint256 limit)
@@ -132,8 +150,10 @@ contract DIDFactory {
     {
         uint256 total = registries.length;
         if (offset >= total) return new address[](0);
+
         uint256 end = offset + limit;
         if (end > total) end = total;
+
         page = new address[](end - offset);
         for (uint256 i = offset; i < end; i++) {
             page[i - offset] = registries[i];

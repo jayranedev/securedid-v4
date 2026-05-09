@@ -2,6 +2,8 @@ export const REGISTRY_V6_ABI = [
   // Student lifecycle
   "function registerStudent(string metadataHash, bytes32 commitment, bytes encPubkey)",
   "function approveStudent(address student, string cid)",
+  "function updateStatus(address student, uint8 status)",
+  "function reactivateIdentity(address student)",
 
   // Proposals — create
   "function proposeReplacePanelist(uint8 slotIndex, address newPanelist) returns (uint256)",
@@ -32,6 +34,7 @@ export const REGISTRY_V6_ABI = [
   "function getCID(address student) view returns (string)",
   "function getEncryptionPubkey(address student) view returns (bytes)",
   "function isStudentRevoked(address student) view returns (bool)",
+  "function getIdentityStatus(address student) view returns (uint8)",
   "function isRevoked(uint256 rIdx) view returns (bool)",
   "function isEnrollmentAuthorized(bytes32 commitment) view returns (bool)",
   "function revocationIndex(address) view returns (uint256)",
@@ -59,6 +62,7 @@ export const REGISTRY_V6_ABI = [
   "error MaxPanelistsReached()",
   "error ThresholdViolation()",
   "error InvalidThreshold()",
+  "error InvalidStatusUpdate()",
 
   // Events
   "event StudentRegistered(address indexed student, bytes32 indexed commitment, string metadataHash, uint256 timestamp)",
@@ -76,4 +80,6 @@ export const REGISTRY_V6_ABI = [
   "event PanelistRemoved(address indexed removedPanelist)",
   "event ThresholdChanged(uint8 oldThreshold, uint8 newThreshold)",
   "event EnrollmentAuthorized(bytes32 indexed commitment)",
+  "event IdentityStatusUpdated(address indexed student, uint8 status, uint256 timestamp)",
+  "event IdentityReactivated(address indexed student, uint256 timestamp)",
 ] as const;

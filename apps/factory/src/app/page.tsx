@@ -30,7 +30,7 @@ export default function Dashboard() {
   }, [rows, address]);
 
   return (
-    <div className="sd-page">
+    <div className="sd-page" style={{ maxWidth: 1200 }}>
       <div className="sd-page-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div>
           <div className="sd-eyebrow">Dashboard</div>
@@ -41,7 +41,8 @@ export default function Dashboard() {
       </div>
 
       {FACTORY_ADDRESS && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--fg-3)", marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12, color: "var(--fg-3)", marginBottom: 24 }}>
+          <span className="sd-pill sd-pill--active"><span className="sd-pill__dot" /> Base Sepolia</span>
           <span>Factory:</span>
           <AddressPill address={FACTORY_ADDRESS} />
         </div>
@@ -80,7 +81,7 @@ export default function Dashboard() {
       {rows.length > mine.length && address && (
         <section style={{ paddingTop: 24, borderTop: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
-            <h2 style={{ font: "var(--fw-semibold) 15px/1 var(--font-sans)", color: "var(--fg-1)" }}>Other institutions</h2>
+            <h2 style={{ font: "var(--fw-semibold) 17px/1 var(--font-heading)", color: "var(--fg-1)" }}>Other institutions</h2>
             <Link href="/explore" style={{ font: "var(--fw-medium) 13px/1 var(--font-sans)", color: "var(--accent)" }}>See all →</Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>

@@ -1,10 +1,12 @@
 export * from "./chain";
 export * from "./abi/factory";
 export * from "./abi/registry";
+export * from "./abi/accessManager";
 export * from "./wallet/WalletContext";
 export * from "./wallet/RainbowKitProvider";
 export * from "./crypto";
 export * from "./registry";
+export * from "./accessManager";
 export * from "./vcCrypto";
 export { AddressPill } from "./components/AddressPill";
 export { ConnectButton } from "./components/ConnectButton";

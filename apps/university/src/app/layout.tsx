@@ -1,38 +1,34 @@
 import "./globals.css";
 import "@securedid/shared/globals.css";
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, DM_Serif_Display } from "next/font/google";
+import { Inter, Manrope, Roboto_Mono } from "next/font/google";
 import { RainbowKitProvider, ConnectButton, EthereumGuard } from "@securedid/shared";
 import Link from "next/link";
 
 const inter    = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const mono     = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", weight: ["400","500","600"] });
-const display  = DM_Serif_Display({ subsets: ["latin"], variable: "--font-display", display: "swap", weight: "400" });
+const manrope  = Manrope({ subsets: ["latin"], variable: "--font-heading", display: "swap", weight: ["400","500","600","700","800"] });
+const mono     = Roboto_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", weight: ["400","500"] });
 
 export const metadata: Metadata = {
   title: "SecureDID University",
   description: "Verify and access academic records via decentralized identity.",
 };
 
-const ShieldIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-    <path d="M16 2.5 L27 6.2 V15.5 C27 22.4 22.3 27.6 16 29.5 C9.7 27.6 5 22.4 5 15.5 V6.2 L16 2.5 Z" fillOpacity="0.12" fill="currentColor" />
-    <rect x="10.5" y="12.5" width="6.5" height="5" rx="2.5" />
-    <rect x="15" y="14.5" width="6.5" height="5" rx="2.5" />
-  </svg>
-);
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning data-app="university" className={`${inter.variable} ${mono.variable} ${display.variable}`}>
+    <html lang="en" suppressHydrationWarning data-app="university" className={`${inter.variable} ${manrope.variable} ${mono.variable}`}>
       <head><EthereumGuard /></head>
       <body style={{ minHeight: "100vh", background: "var(--bg-page)" }}>
         <RainbowKitProvider>
           <nav className="sd-nav">
             <div className="sd-nav__left">
-              <Link href="/" className="sd-brand"><ShieldIcon />Secure<em>DID</em></Link>
-              <span className="sd-nav-sep" />
-              <span className="sd-nav-app">University Portal</span>
+              <Link href="/" className="sd-brand">SecureDID</Link>
+              <div className="sd-nav-tabs">
+                <Link href="/" className="sd-nav-tab active">Dashboard</Link>
+                <Link href="/" className="sd-nav-tab">Registry</Link>
+                <Link href="/" className="sd-nav-tab">Governance</Link>
+                <Link href="/" className="sd-nav-tab">Compliance</Link>
+              </div>
             </div>
             <div className="sd-nav__right">
               <ConnectButton />
